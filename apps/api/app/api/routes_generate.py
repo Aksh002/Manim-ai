@@ -1,3 +1,7 @@
+
+
+# routes_generate.py (line 1) hashes the request, checks generation cache, calls llm_service.py (line 1), then validates the returned code with code_validator.py (line 1). 
+
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.api.deps import get_cache_service, get_llm_service

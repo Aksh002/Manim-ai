@@ -1,3 +1,5 @@
+#  wires FastAPI, CORS, request IDs, rate limiting, and all route modules together
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 

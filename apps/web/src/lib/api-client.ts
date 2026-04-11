@@ -1,3 +1,5 @@
+// The frontend calls POST /generate through api-client.ts (line 1).
+
 import {
   GeneratePayload,
   GenerateResponse,

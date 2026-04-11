@@ -1,5 +1,7 @@
 "use client";
-
+// The UI in page.tsx (line 1) collects a topic, duration, style, level, and extra instructions through PromptForm.tsx (line 1). 
+// It sends these inputs to the backend via the generateCode API (line 1 in api-client.ts) to get the generated Manim code, which is then displayed in CodeEditor.tsx (line 1). The user can edit the code if needed and click "Render Video" to send the code to the backend via the renderCode API (line 1 in api-client.ts). 
+// The backend processes the code, renders the video, and updates the job status. The frontend polls for job status updates using getJobStatus API (line 1 in api-client.ts) and displays the video in VideoPlayer.tsx (line 1) once rendering is complete. If there are any errors during generation or rendering, they are displayed to the user.
 import { useEffect, useMemo, useState } from "react";
 import CodeEditor from "@/components/CodeEditor";
 import JobStatusBadge from "@/components/JobStatusBadge";
