@@ -1,7 +1,4 @@
 "use client";
-// The UI in page.tsx (line 1) collects a topic, duration, style, level, and extra instructions through PromptForm.tsx (line 1). 
-// It sends these inputs to the backend via the generateCode API (line 1 in api-client.ts) to get the generated Manim code, which is then displayed in CodeEditor.tsx (line 1). The user can edit the code if needed and click "Render Video" to send the code to the backend via the renderCode API (line 1 in api-client.ts). 
-// The backend processes the code, renders the video, and updates the job status. The frontend polls for job status updates using getJobStatus API (line 1 in api-client.ts) and displays the video in VideoPlayer.tsx (line 1) once rendering is complete. If there are any errors during generation or rendering, they are displayed to the user.
 import { useEffect, useMemo, useState } from "react";
 import CodeEditor from "@/components/CodeEditor";
 import JobStatusBadge from "@/components/JobStatusBadge";
@@ -16,22 +13,42 @@ export default function HomePage() {
   const [loadingRender, setLoadingRender] = useState(false);
   const [jobStatus, setJobStatus] = useState<JobStatus | null>(null);
   const [jobId, setJobId] = useState<string | null>(null);
+  const [ownerToken, setOwnerToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pollingError, setPollingError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [quality, setQuality] = useState<RenderQuality>("1080p30");
   const [regenerateInstruction, setRegenerateInstruction] = useState("Make it shorter and more colorful.");
   const [loadingRegenerate, setLoadingRegenerate] = useState(false);
 
-  const videoUrl = useMemo(() => (jobId && jobStatus?.status === "done" ? getVideoUrl(jobId) : null), [jobId, jobStatus]);
+  const videoUrl = useMemo(
+    () => (jobId && ownerToken && jobStatus?.status === "done" ? getVideoUrl(jobId, ownerToken) : null),
+    [jobId, ownerToken, jobStatus]
+  );
+  const hasRepairedCode =
+    Boolean(jobStatus?.final_code) && jobStatus?.final_code !== code && (jobStatus?.repair_attempts ?? 0) > 0;
+
+  function clearRenderState() {
+    setJobStatus(null);
+    setJobId(null);
+    setOwnerToken(null);
+    setPollingError(null);
+  }
+
+  function updateCode(nextCode: string) {
+    setCode(nextCode);
+    clearRenderState();
+  }
 
   async function handleGenerate(payload: GeneratePayload) {
     setError(null);
     setWarnings([]);
+    clearRenderState();
     setLoadingGenerate(true);
     try {
       const result = await generateCode(payload);
       setCode(result.code);
-      setWarnings(result.warnings ?? []);
+      setWarnings([...(result.source === "fallback" ? ["Generated from fallback template"] : []), ...(result.warnings ?? [])]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate code");
     } finally {
@@ -45,7 +62,11 @@ export default function HomePage() {
     try {
       const result = await renderCode({ code, quality, retry_on_error: true });
       setJobId(result.job_id);
-      const status = await getJobStatus(result.job_id);
+      setOwnerToken(result.owner_token);
+      if (!result.owner_token) {
+        throw new Error("Render response did not include a job token");
+      }
+      const status = await getJobStatus(result.job_id, result.owner_token);
       setJobStatus(status);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Render request failed");
@@ -56,6 +77,7 @@ export default function HomePage() {
 
   async function handleRegenerate() {
     setError(null);
+    clearRenderState();
     setLoadingRegenerate(true);
     try {
       const result = await regenerateCode({ code, instruction: regenerateInstruction });
@@ -68,29 +90,30 @@ export default function HomePage() {
   }
 
   useEffect(() => {
-    if (!jobId) {
+    if (!jobId || !ownerToken) {
       return;
     }
 
     const interval = setInterval(async () => {
       try {
-        const status = await getJobStatus(jobId);
+        const status = await getJobStatus(jobId, ownerToken);
         setJobStatus(status);
         if (["done", "failed", "timeout"].includes(status.status)) {
           clearInterval(interval);
         }
-      } catch {
+      } catch (err) {
+        setPollingError(err instanceof Error ? err.message : "Lost connection while polling render status");
         clearInterval(interval);
       }
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [jobId]);
+  }, [jobId, ownerToken]);
 
   return (
     <main>
       <h1>AI-Powered Manim Video Generation</h1>
-      <p>Prompt -> code -> secure render -> preview -> download</p>
+      <p>{"Prompt -> code -> secure render -> preview -> download"}</p>
 
       <div className="grid" style={{ marginTop: 16 }}>
         <PromptForm loading={loadingGenerate} onSubmit={handleGenerate} />
@@ -146,6 +169,21 @@ export default function HomePage() {
               Render error: {jobStatus.error}
             </p>
           ) : null}
+          {pollingError ? (
+            <p style={{ color: "#8c1f1f", marginTop: 8, whiteSpace: "pre-wrap" }}>
+              Status polling error: {pollingError}
+            </p>
+          ) : null}
+          {hasRepairedCode ? (
+            <div style={{ marginTop: 10 }}>
+              <p style={{ color: "#25521f", marginTop: 0 }}>
+                Render succeeded after {jobStatus?.repair_attempts} repair attempt(s).
+              </p>
+              <button className="secondary" onClick={() => updateCode(jobStatus?.final_code ?? code)}>
+                Use Repaired Code
+              </button>
+            </div>
+          ) : null}
           {warnings.length > 0 ? (
             <p style={{ color: "#7a5a00", marginTop: 8, whiteSpace: "pre-wrap" }}>
               {warnings.join("\n")}
@@ -155,7 +193,7 @@ export default function HomePage() {
       </div>
 
       <div className="grid" style={{ marginTop: 16 }}>
-        <CodeEditor code={code} onChange={setCode} />
+        <CodeEditor code={code} onChange={updateCode} />
         <VideoPlayer videoUrl={videoUrl} jobId={jobId} />
       </div>
     </main>
