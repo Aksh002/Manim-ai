@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint --cache-location .cache/eslint/.cache"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.6.0",

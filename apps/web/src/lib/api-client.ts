@@ -51,10 +51,12 @@ export function regenerateCode(payload: RegeneratePayload): Promise<RegenerateRe
   });
 }
 
-export function getJobStatus(jobId: string): Promise<JobStatus> {
-  return api<JobStatus>(`/status/${jobId}`);
+export function getJobStatus(jobId: string, ownerToken: string): Promise<JobStatus> {
+  const params = new URLSearchParams({ owner_token: ownerToken });
+  return api<JobStatus>(`/status/${jobId}?${params.toString()}`);
 }
 
-export function getVideoUrl(jobId: string): string {
-  return `${API_BASE}/video/${jobId}`;
+export function getVideoUrl(jobId: string, ownerToken: string): string {
+  const params = new URLSearchParams({ owner_token: ownerToken });
+  return `${API_BASE}/video/${jobId}?${params.toString()}`;
 }

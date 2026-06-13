@@ -13,6 +13,7 @@ export type GeneratePayload = {
 export type GenerateResponse = {
   code: string;
   model: string;
+  source: "llm" | "fallback" | "cache";
   warnings: string[];
 };
 
@@ -25,6 +26,7 @@ export type RenderPayload = {
 export type RenderResponse = {
   job_id: string;
   status: string;
+  owner_token: string | null;
 };
 
 export type RegeneratePayload = {
@@ -44,4 +46,8 @@ export type JobStatus = {
   error: string | null;
   created_at: string;
   updated_at: string;
+  input_code: string | null;
+  final_code: string | null;
+  repair_attempts: number;
+  render_hash: string | null;
 };
