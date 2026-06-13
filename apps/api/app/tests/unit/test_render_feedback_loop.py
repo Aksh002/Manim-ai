@@ -40,6 +40,9 @@ def test_render_feedback_loop_repairs_validation_then_renders(monkeypatch) -> No
     class FakeRenderOrchestrator:
         def run(self, job_id: str, code: str, quality: str):
             fd, tmp = tempfile.mkstemp(prefix=f"{job_id}_", suffix=".mp4")
+            import os
+
+            os.close(fd)
             return SimpleNamespace(video_file=tmp)
 
     class FakeStorageService:
