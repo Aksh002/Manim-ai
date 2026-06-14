@@ -1,9 +1,12 @@
 from fastapi.testclient import TestClient
 
+from app.core.config import get_settings
 from app.main import app
 
 
 def test_generate_route_returns_code() -> None:
+    settings = get_settings()
+    settings.allow_llm_fallback = True
     client = TestClient(app)
     payload = {
         "topic": "Explain the Pythagorean theorem visually",
@@ -17,3 +20,4 @@ def test_generate_route_returns_code() -> None:
     body = response.json()
     assert "code" in body
     assert "class GeneratedScene(Scene)" in body["code"]
+    assert body["source"] in {"fallback", "llm", "cache"}

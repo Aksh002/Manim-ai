@@ -67,3 +67,41 @@ class GeneratedScene(Scene):
 """
     result = CodeValidator().validate(code)
     assert result.ok is True
+
+
+def test_code_validator_blocks_dynamic_escape_hatches() -> None:
+    code = """
+from manim import *
+
+class GeneratedScene(Scene):
+    def construct(self):
+        getattr(__builtins__, "open")
+"""
+    result = CodeValidator().validate(code)
+    assert result.ok is False
+    assert any("Forbidden call: getattr" in err for err in result.errors)
+    assert any("Forbidden dunder name" in err for err in result.errors)
+
+
+def test_code_validator_rejects_tex_but_allows_text_and_mathtex() -> None:
+    bad_code = """
+from manim import *
+
+class GeneratedScene(Scene):
+    def construct(self):
+        self.play(Write(Tex("x_1")))
+"""
+    bad_result = CodeValidator().validate(bad_code)
+    assert bad_result.ok is False
+    assert any("Unsupported Tex call" in err for err in bad_result.errors)
+
+    good_code = """
+from manim import *
+
+class GeneratedScene(Scene):
+    def construct(self):
+        self.play(Write(Text("Input x1")))
+        self.play(Write(MathTex("x_1")))
+"""
+    good_result = CodeValidator().validate(good_code)
+    assert good_result.ok is True

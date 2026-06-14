@@ -16,3 +16,5 @@ def test_prompt_builder_includes_key_constraints() -> None:
     assert "GeneratedScene" in prompt
     assert "quadratic formula" in prompt.lower()
     assert "60 seconds" in prompt
+    assert "Do not use `Tex(...)`" in prompt
+    assert "MathTex" in prompt
