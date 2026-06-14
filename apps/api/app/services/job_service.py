@@ -30,7 +30,13 @@ class JobService:
     def _key(self, job_id: str) -> str:
         return f"job:{job_id}"
 
-    def create_job(self) -> dict[str, Any]:
+    def create_job(
+        self,
+        *,
+        owner_token: str | None = None,
+        input_code: str | None = None,
+        render_hash: str | None = None,
+    ) -> dict[str, Any]:
         job_id = f"job_{uuid.uuid4().hex[:12]}"
         now = self._now()
         payload = {
@@ -42,6 +48,11 @@ class JobService:
             "created_at": now,
             "updated_at": now,
             "video_path": None,
+            "owner_token": owner_token or uuid.uuid4().hex,
+            "input_code": input_code,
+            "final_code": None,
+            "repair_attempts": 0,
+            "render_hash": render_hash,
         }
 
         if self._redis:

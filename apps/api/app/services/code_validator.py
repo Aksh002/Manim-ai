@@ -2,6 +2,7 @@ import ast
 from dataclasses import dataclass, field
 
 FORBIDDEN_IMPORTS = {
+    "builtins",
     "os",
     "sys",
     "subprocess",
@@ -13,7 +14,21 @@ FORBIDDEN_IMPORTS = {
     "urllib",
 }
 
-FORBIDDEN_CALLS = {"eval", "exec", "open", "__import__", "compile", "input"}
+FORBIDDEN_CALLS = {
+    "__import__",
+    "compile",
+    "delattr",
+    "eval",
+    "exec",
+    "getattr",
+    "globals",
+    "hasattr",
+    "input",
+    "locals",
+    "open",
+    "setattr",
+    "vars",
+}
 KNOWN_SCENE_METHODS = {
     "add",
     "remove",
@@ -39,6 +54,8 @@ class ValidationResult:
 
 
 class CodeValidator:
+    """Checks the generated script contract before sandboxed rendering."""
+
     def validate(self, code: str) -> ValidationResult:
         errors: list[str] = []
         seen_errors: set[str] = set()
@@ -81,6 +98,20 @@ class CodeValidator:
                     fn_name = node.func.attr
                 if fn_name in FORBIDDEN_CALLS:
                     add_error(f"Forbidden call: {fn_name}")
+                if fn_name == "Tex":
+                    line = getattr(node, "lineno", "?")
+                    add_error(
+                        f"Unsupported Tex call at line {line}: use Text(...) for prose/labels "
+                        "or MathTex(...) for mathematical formulas."
+                    )
+
+            if isinstance(node, ast.Attribute) and node.attr.startswith("__"):
+                line = getattr(node, "lineno", "?")
+                add_error(f"Forbidden dunder attribute access at line {line}: {node.attr}")
+
+            if isinstance(node, ast.Name) and node.id.startswith("__"):
+                line = getattr(node, "lineno", "?")
+                add_error(f"Forbidden dunder name at line {line}: {node.id}")
 
             if isinstance(node, ast.ClassDef) and node.name == "GeneratedScene":
                 for base in node.bases:
