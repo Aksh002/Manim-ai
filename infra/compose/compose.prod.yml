@@ -13,5 +13,3 @@ services:
       replicas: 2
   redis:
     restart: unless-stopped
-  ollama:
-    restart: unless-stopped

@@ -26,4 +26,5 @@ class GenerateRequest(BaseModel):
 class GenerateResponse(BaseModel):
     code: str
     model: str
+    source: str = "llm"
     warnings: list[str] = Field(default_factory=list)

@@ -14,7 +14,7 @@
 [Next.js UI]
    |  POST /generate
    v
-[FastAPI API] --(LLM Provider: HF/Ollama/OpenAI)-> [Code Model]
+[FastAPI API] --(OpenAI-compatible chat completions)-> [Lightning qwen3-coder]
    |  returns manim code
    |  POST /render
    v
