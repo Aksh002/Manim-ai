@@ -45,23 +45,6 @@ services:
     ports:
       - "6379:6379"
 
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-
-  ollama-pull:
-    image: ollama/ollama:latest
-    depends_on:
-      - ollama
-    environment:
-      OLLAMA_HOST: http://ollama:11434
-    entrypoint: ["/bin/sh", "-c", "sleep 5 && ollama pull ${OLLAMA_MODEL:-deepseek-coder:1.3b}"]
-    profiles:
-      - setup
-
   renderer-image:
     build:
       context: .
@@ -72,4 +55,3 @@ services:
 
 volumes:
   videos_data:
-  ollama_data:

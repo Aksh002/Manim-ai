@@ -3,12 +3,14 @@ SHELL := /bin/bash
 .PHONY: up down build logs test-api lint-api test-web lint-web
 
 up:
+	docker compose build renderer-image
 	docker compose up --build
 
 down:
 	docker compose down --remove-orphans
 
 build:
+	docker compose build renderer-image
 	docker compose build
 
 logs:

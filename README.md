@@ -6,20 +6,15 @@ AI-assisted Manim animation generation platform with FastAPI + Next.js + Redis/R
 
 1. Copy env file:
    - `cp .env.example .env`
-2. Configure Hugging Face endpoint in `.env`:
-   - `LLM_PROVIDER=hf_router`
-   - `HF_ROUTER_BASE_URL=https://router.huggingface.co/v1`
-   - `HF_API_TOKEN=<your token>`
+2. Configure the Lightning.ai qwen endpoint in `.env`:
+   - `LLM_BASE_URL=<your /v1 or /v1/chat/completions URL>`
+   - `LLM_API_KEY=<your token>`
+   - `LLM_MODEL=qwen3-coder`
 3. Start stack:
-   - `docker compose up --build`
+   - `make up`
 4. Open:
    - Web: `http://localhost:3000`
    - API docs: `http://localhost:8000/docs`
-
-Optional (Ollama mode):
-- `LLM_PROVIDER=ollama`
-- `docker compose --profile setup up -d ollama`
-- `docker compose --profile setup run --rm ollama-pull`
 
 ## Modes
 
@@ -41,8 +36,7 @@ Optional (Ollama mode):
 
 - Phase 1 includes synchronous local render fallback.
 - Phase 2 path (default) uses queue + docker sandbox execution.
-- Default LLM provider is Hugging Face Router (`hf_router`, OpenAI-compatible).
-- Optional providers: Ollama (`ollama`) and OpenAI (`openai`).
+- The LLM layer uses a single OpenAI-compatible chat-completions endpoint, configured by `LLM_BASE_URL`, `LLM_API_KEY`, and `LLM_MODEL`.
 - API contracts are documented in `docs/api-contracts.md`.
 - Golden benchmark prompts are in `docs/golden-prompts.json`.
 - Benchmark runner: `apps/api/app/tests/e2e/run_benchmark.py`.
