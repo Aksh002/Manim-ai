@@ -8,6 +8,7 @@ WORKDIR /app
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
       ffmpeg curl \
+      docker-cli \
       libcairo2 libpango-1.0-0 libpangocairo-1.0-0 \
       build-essential pkg-config libcairo2-dev libpango1.0-dev \
     && rm -rf /var/lib/apt/lists/*

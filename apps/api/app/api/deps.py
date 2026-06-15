@@ -1,7 +1,6 @@
 from functools import lru_cache
 
 from redis import Redis
-from rq import Queue
 
 from app.core.config import get_settings
 from app.services.cache_service import CacheService
@@ -17,7 +16,9 @@ def get_redis() -> Redis:
 
 
 @lru_cache
-def get_queue() -> Queue:
+def get_queue():
+    from rq import Queue
+
     return Queue("render", connection=get_redis())
 
 

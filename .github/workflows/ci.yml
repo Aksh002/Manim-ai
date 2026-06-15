@@ -25,6 +25,12 @@ jobs:
         run: ruff check app
       - name: Test
         run: pytest -q
+      - name: Compose config
+        working-directory: .
+        run: docker compose config --services
+      - name: Renderer image smoke build
+        working-directory: .
+        run: docker compose build renderer-image
 
   web:
     runs-on: ubuntu-latest

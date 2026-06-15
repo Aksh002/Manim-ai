@@ -7,19 +7,13 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     app_name: str = "Manim AI API"
-    llm_provider: str = "hf_router"
+    llm_base_url: str = ""
+    llm_api_key: str = ""
+    llm_model: str = "qwen3-coder"
+    llm_max_tokens: int = 2048
+    llm_system_prompt: str = ""
     llm_request_timeout_sec: int = 120
-
-    hf_router_base_url: str = "https://router.huggingface.co/v1"
-    hf_endpoint_url: str = ""
-    hf_api_token: str = ""
-    hf_model_id: str = "Qwen/Qwen2.5-Coder-7B-Instruct:nscale"
-    hf_max_new_tokens: int = 1400
-
-    openai_api_key: str = ""
-    openai_model: str = "gpt-5-mini"
-    ollama_base_url: str = "http://ollama:11434"
-    ollama_model: str = "deepseek-coder:1.3b"
+    allow_llm_fallback: bool = False
 
     redis_url: str = "redis://redis:6379/0"
     use_queue: bool = True
@@ -37,10 +31,11 @@ class Settings(BaseSettings):
     sandbox_read_only: bool = True
     sandbox_network_disabled: bool = True
     sandbox_no_new_privileges: bool = True
-    sandbox_seccomp_profile: str = "/app/app/sandbox/seccomp/renderer-seccomp.json"
+    sandbox_seccomp_profile: str = ""
 
     cors_origins: str = "http://localhost:3000"
     rate_limit_per_min: int = 60
+    trust_proxy_headers: bool = False
 
 
 @lru_cache
