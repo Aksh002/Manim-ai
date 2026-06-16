@@ -29,12 +29,21 @@ class CacheService:
         with self._lock:
             return self._mem.get(key)
 
-    def _set(self, key: str, value: str) -> None:
+    def _set(self, key: str, value: str, ex: int | None = None, nx: bool = False) -> bool:
         if self._redis:
-            self._redis.set(key, value)
+            return bool(self._redis.set(key, value, ex=ex, nx=nx))
+        with self._lock:
+            if nx and key in self._mem:
+                return False
+            self._mem[key] = value
+        return True
+
+    def _delete(self, key: str) -> None:
+        if self._redis:
+            self._redis.delete(key)
             return
         with self._lock:
-            self._mem[key] = value
+            self._mem.pop(key, None)
 
     def get_generation(self, request_hash: str) -> str | None:
         return self._get(f"cache:generate:{request_hash}")
@@ -42,8 +51,17 @@ class CacheService:
     def set_generation(self, request_hash: str, code: str) -> None:
         self._set(f"cache:generate:{request_hash}", code)
 
-    def get_render_job(self, render_hash: str) -> str | None:
-        return self._get(f"cache:render:{render_hash}")
+    def get_render_artifact(self, render_hash: str) -> str | None:
+        return self._get(f"cache:render:artifact:{render_hash}")
 
-    def set_render_job(self, render_hash: str, job_id: str) -> None:
-        self._set(f"cache:render:{render_hash}", job_id)
+    def set_render_artifact(self, render_hash: str, job_id: str) -> None:
+        self._set(f"cache:render:artifact:{render_hash}", job_id)
+
+    def get_render_inflight(self, render_hash: str) -> str | None:
+        return self._get(f"cache:render:inflight:{render_hash}")
+
+    def set_render_inflight(self, render_hash: str, job_id: str, ttl_seconds: int) -> bool:
+        return self._set(f"cache:render:inflight:{render_hash}", job_id, ex=ttl_seconds, nx=True)
+
+    def clear_render_inflight(self, render_hash: str) -> None:
+        self._delete(f"cache:render:inflight:{render_hash}")
