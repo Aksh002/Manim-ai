@@ -21,6 +21,7 @@ export type RenderPayload = {
   code: string;
   quality: RenderQuality;
   retry_on_error: boolean;
+  preview_first: boolean;
 };
 
 export type RenderResponse = {
@@ -44,10 +45,27 @@ export type JobStatus = {
   progress: number;
   stage: string;
   error: string | null;
+  error_type: string | null;
+  error_summary: string | null;
   created_at: string;
   updated_at: string;
   input_code: string | null;
   final_code: string | null;
   repair_attempts: number;
+  attempts: JobAttempt[];
+  code_hash: string | null;
+  artifact_metadata: Record<string, unknown> | null;
+  thumbnail_url: string | null;
   render_hash: string | null;
+};
+
+export type JobAttempt = {
+  attempt_number: number;
+  phase: string;
+  error_type: string | null;
+  error_summary: string | null;
+  input_code: string | null;
+  output_code: string | null;
+  render_log_ref: string | null;
+  deterministic_repairs: string[];
 };

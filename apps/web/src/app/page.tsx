@@ -4,7 +4,7 @@ import CodeEditor from "@/components/CodeEditor";
 import JobStatusBadge from "@/components/JobStatusBadge";
 import PromptForm from "@/components/PromptForm";
 import VideoPlayer from "@/components/VideoPlayer";
-import { generateCode, getJobStatus, getVideoUrl, regenerateCode, renderCode } from "@/lib/api-client";
+import { generateCode, getJobStatus, getThumbnailUrl, getVideoUrl, regenerateCode, renderCode } from "@/lib/api-client";
 import { GeneratePayload, JobStatus, RenderQuality } from "@/lib/types";
 
 export default function HomePage() {
@@ -18,6 +18,7 @@ export default function HomePage() {
   const [pollingError, setPollingError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [quality, setQuality] = useState<RenderQuality>("1080p30");
+  const [previewFirst, setPreviewFirst] = useState(false);
   const [regenerateInstruction, setRegenerateInstruction] = useState("Make it shorter and more colorful.");
   const [loadingRegenerate, setLoadingRegenerate] = useState(false);
 
@@ -25,8 +26,15 @@ export default function HomePage() {
     () => (jobId && ownerToken && jobStatus?.status === "done" ? getVideoUrl(jobId, ownerToken) : null),
     [jobId, ownerToken, jobStatus]
   );
-  const hasRepairedCode =
-    Boolean(jobStatus?.final_code) && jobStatus?.final_code !== code && (jobStatus?.repair_attempts ?? 0) > 0;
+  const thumbnailUrl = useMemo(
+    () =>
+      jobId && ownerToken && jobStatus?.status === "done" && jobStatus.thumbnail_url
+        ? getThumbnailUrl(jobId, ownerToken)
+        : null,
+    [jobId, ownerToken, jobStatus]
+  );
+  const hasRepairHistory = (jobStatus?.attempts?.length ?? 0) > 0;
+  const artifactMetadata = jobStatus?.artifact_metadata ?? null;
 
   function clearRenderState() {
     setJobStatus(null);
@@ -60,7 +68,7 @@ export default function HomePage() {
     setError(null);
     setLoadingRender(true);
     try {
-      const result = await renderCode({ code, quality, retry_on_error: true });
+      const result = await renderCode({ code, quality, retry_on_error: true, preview_first: previewFirst });
       setJobId(result.job_id);
       setOwnerToken(result.owner_token);
       if (!result.owner_token) {
@@ -98,6 +106,9 @@ export default function HomePage() {
       try {
         const status = await getJobStatus(jobId, ownerToken);
         setJobStatus(status);
+        if (status.status === "done" && status.final_code && status.final_code !== code && status.repair_attempts > 0) {
+          setCode(status.final_code);
+        }
         if (["done", "failed", "timeout"].includes(status.status)) {
           clearInterval(interval);
         }
@@ -108,7 +119,7 @@ export default function HomePage() {
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [jobId, ownerToken]);
+  }, [code, jobId, ownerToken]);
 
   return (
     <main>
@@ -126,6 +137,14 @@ export default function HomePage() {
             <option value="720p30">720p30</option>
             <option value="480p15">480p15</option>
           </select>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10 }}>
+            <input
+              type="checkbox"
+              checked={previewFirst}
+              onChange={(event) => setPreviewFirst(event.target.checked)}
+            />
+            Draft preview at 480p15
+          </label>
 
           <div className="actions">
             <button onClick={handleRender} disabled={loadingRender || !code}>
@@ -166,7 +185,8 @@ export default function HomePage() {
           ) : null}
           {jobStatus?.error ? (
             <p style={{ color: "#8c1f1f", marginTop: 8, whiteSpace: "pre-wrap" }}>
-              Render error: {jobStatus.error}
+              Render error{jobStatus.error_type ? ` (${jobStatus.error_type})` : ""}:{" "}
+              {jobStatus.error_summary ?? jobStatus.error}
             </p>
           ) : null}
           {pollingError ? (
@@ -174,15 +194,32 @@ export default function HomePage() {
               Status polling error: {pollingError}
             </p>
           ) : null}
-          {hasRepairedCode ? (
+          {jobStatus?.status === "done" && (jobStatus?.repair_attempts ?? 0) > 0 ? (
             <div style={{ marginTop: 10 }}>
               <p style={{ color: "#25521f", marginTop: 0 }}>
-                Render succeeded after {jobStatus?.repair_attempts} repair attempt(s).
+                Render succeeded after {jobStatus?.repair_attempts} repair step(s). The editor now shows the final rendered code.
               </p>
-              <button className="secondary" onClick={() => updateCode(jobStatus?.final_code ?? code)}>
-                Use Repaired Code
-              </button>
             </div>
+          ) : null}
+          {hasRepairHistory ? (
+            <details style={{ marginTop: 10 }}>
+              <summary>Repair timeline</summary>
+              <ul>
+                {jobStatus?.attempts.map((attempt) => (
+                  <li key={`${attempt.attempt_number}-${attempt.phase}`}>
+                    Attempt {attempt.attempt_number}: {attempt.phase}
+                    {attempt.error_type ? ` (${attempt.error_type})` : ""}
+                    {attempt.error_summary ? ` - ${attempt.error_summary}` : ""}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
+          {artifactMetadata ? (
+            <details style={{ marginTop: 10 }}>
+              <summary>Render metadata</summary>
+              <pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(artifactMetadata, null, 2)}</pre>
+            </details>
           ) : null}
           {warnings.length > 0 ? (
             <p style={{ color: "#7a5a00", marginTop: 8, whiteSpace: "pre-wrap" }}>
@@ -194,7 +231,7 @@ export default function HomePage() {
 
       <div className="grid" style={{ marginTop: 16 }}>
         <CodeEditor code={code} onChange={updateCode} />
-        <VideoPlayer videoUrl={videoUrl} jobId={jobId} />
+        <VideoPlayer videoUrl={videoUrl} thumbnailUrl={thumbnailUrl} jobId={jobId} />
       </div>
     </main>
   );

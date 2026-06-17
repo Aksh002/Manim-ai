@@ -42,6 +42,7 @@
          [Sandbox Renderer Container]
           - no network
           - read-only root fs
+          - tmpfs workspace/output/cache
           - cpu/memory/pids/time limits
                   |
                   v
@@ -54,5 +55,6 @@
 2. LLM returns Manim code.
 3. User submits code to `/render`.
 4. API enqueues job in RQ.
-5. Worker validates and executes in sandbox container.
-6. Video stored locally and exposed by `/video/{job_id}`.
+5. Worker validates, applies deterministic repairs, and executes in sandbox container.
+6. Job status records attempts, error classification, final code, and artifact metadata.
+7. Video and best-effort thumbnail are stored locally and exposed by `/video/{job_id}` and `/thumbnail/{job_id}`.

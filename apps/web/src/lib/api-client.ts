@@ -60,3 +60,8 @@ export function getVideoUrl(jobId: string, ownerToken: string): string {
   const params = new URLSearchParams({ owner_token: ownerToken });
   return `${API_BASE}/video/${jobId}?${params.toString()}`;
 }
+
+export function getThumbnailUrl(jobId: string, ownerToken: string): string {
+  const params = new URLSearchParams({ owner_token: ownerToken });
+  return `${API_BASE}/thumbnail/${jobId}?${params.toString()}`;
+}

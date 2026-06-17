@@ -13,6 +13,9 @@
    - `make up`
 5. Run benchmark:
    - `python apps/api/app/tests/e2e/run_benchmark.py`
+6. Run renderer smoke after building `renderer-image`:
+   - `cd apps/api`
+   - `python app/tests/e2e/render_smoke.py`
 
 ## Production VM
 
