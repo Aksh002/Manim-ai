@@ -44,12 +44,12 @@ def test_docker_runner_uses_hardened_copy_exec_flow(monkeypatch, tmp_path) -> No
     assert "--cap-drop" in create_cmd and "ALL" in create_cmd
     assert "--security-opt" in create_cmd and "no-new-privileges:true" in create_cmd
     assert "-v" not in create_cmd
-    assert "/workspace:size=16m,mode=755" in create_cmd
+    assert "/workspace:size=16m,uid=1000,gid=1000,mode=755" in create_cmd
     assert "/output:size=512m,uid=1000,gid=1000,mode=755" in create_cmd
     assert "/home/runner/.cache:size=128m,uid=1000,gid=1000,mode=755" in create_cmd
     assert create_cmd[-2:] == ["manim-ai-renderer:test", "600"]
 
-    write_cmd = next(cmd for cmd in commands if cmd[:5] == ["docker", "exec", "--user", "root", "-i"])
+    write_cmd = next(cmd for cmd in commands if cmd[:3] == ["docker", "exec", "-i"])
     assert write_cmd[-3:] == ["sh", "-c", "cat > /workspace/scene.py && chmod 0444 /workspace/scene.py"]
     assert "-v" not in write_cmd
 

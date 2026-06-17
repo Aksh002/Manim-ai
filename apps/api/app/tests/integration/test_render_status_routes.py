@@ -103,6 +103,32 @@ def test_video_requires_job_owner_token(tmp_path) -> None:
     app.dependency_overrides.clear()
 
 
+def test_thumbnail_requires_job_owner_token(tmp_path) -> None:
+    thumbnail_file = tmp_path / "job_private.jpg"
+    thumbnail_file.write_bytes(b"jpg")
+
+    class FakeJobService:
+        def get_job(self, job_id: str):
+            return {
+                "job_id": job_id,
+                "status": "done",
+                "owner_token": "secret",
+            }
+
+    class ReadyStorageService:
+        def get_thumbnail(self, job_id: str):
+            return str(thumbnail_file)
+
+    app.dependency_overrides[get_job_service] = lambda: FakeJobService()
+    app.dependency_overrides[get_storage_service] = lambda: ReadyStorageService()
+    client = TestClient(app)
+
+    assert client.get("/thumbnail/job_private").status_code == 403
+    assert client.get("/thumbnail/job_private", params={"owner_token": "wrong"}).status_code == 403
+    assert client.get("/thumbnail/job_private", params={"owner_token": "secret"}).status_code == 200
+    app.dependency_overrides.clear()
+
+
 def test_render_accepts_invalid_code_when_retry_enabled(monkeypatch) -> None:
     settings = get_settings()
     settings.use_queue = False
@@ -144,4 +170,37 @@ def test_render_rejects_unknown_quality(monkeypatch) -> None:
         },
     )
     assert response.status_code == 422
+    app.dependency_overrides.clear()
+
+
+def test_render_preview_first_uses_preview_quality(monkeypatch) -> None:
+    settings = get_settings()
+    settings.use_queue = False
+    settings.preview_render_quality = "480p15"
+    app.dependency_overrides[get_storage_service] = lambda: FakeStorageService()
+    captured = {}
+
+    def fake_task(
+        job_id: str,
+        code: str,
+        quality: str,
+        retry_on_error: bool = True,
+        render_hash: str | None = None,
+    ) -> None:
+        captured["quality"] = quality
+
+    monkeypatch.setattr("app.api.routes_render.process_render_job", fake_task)
+
+    client = TestClient(app)
+    response = client.post(
+        "/render",
+        json={
+            "code": "from manim import *\n\nclass GeneratedScene(Scene):\n    def construct(self):\n        pass\n",
+            "quality": "1080p30",
+            "retry_on_error": True,
+            "preview_first": True,
+        },
+    )
+    assert response.status_code == 202
+    assert captured["quality"] == "480p15"
     app.dependency_overrides.clear()
