@@ -62,6 +62,11 @@ class DockerRunner:
             raise RuntimeError("Docker preflight timed out") from exc
         except subprocess.CalledProcessError as exc:
             detail = (exc.stderr or exc.stdout or "").strip()
+            if "no such image" in detail.lower() or "not found" in detail.lower():
+                detail = (
+                    f"{detail}. Build the renderer image first with "
+                    "`docker compose build renderer-image` or run `make up` from the repo root."
+                )
             raise RuntimeError(
                 f"Renderer preflight failed for {self.settings.renderer_image}: {detail}"
             ) from exc
@@ -86,7 +91,7 @@ class DockerRunner:
                 "--tmpfs",
                 "/tmp:size=256m,mode=1777",
                 "--tmpfs",
-                "/workspace:size=16m,mode=755",
+                "/workspace:size=16m,uid=1000,gid=1000,mode=755",
                 "--tmpfs",
                 "/output:size=512m,uid=1000,gid=1000,mode=755",
                 "--tmpfs",
@@ -115,8 +120,6 @@ class DockerRunner:
                     [
                         "docker",
                         "exec",
-                        "--user",
-                        "root",
                         "-i",
                         container_name,
                         "sh",

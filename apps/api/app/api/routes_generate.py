@@ -21,10 +21,12 @@ def generate(
         f"{llm_service.model_name}:"
         f"{llm_service.settings.llm_base_url}:"
         f"{llm_service.settings.llm_max_tokens}:"
-        f"{llm_service.settings.llm_system_prompt}"
+        f"{llm_service.settings.llm_system_prompt}:"
+        f"{llm_service.settings.prompt_policy_version}:"
+        f"{llm_service.settings.validator_policy_version}"
     )
     request_hash = cache_service.hash_text(
-        f"gen:v4:{llm_cache_identity}:{payload.model_dump_json()}"
+        f"gen:v5:{llm_cache_identity}:{payload.model_dump_json()}"
     )
     cached_code = cache_service.get_generation(request_hash)
     if cached_code:
