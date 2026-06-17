@@ -7,6 +7,9 @@ def test_render_cache_is_written_only_after_success(monkeypatch) -> None:
     cleared = []
 
     class FakeCacheService:
+        def hash_text(self, text: str) -> str:
+            return f"hash:{text}"
+
         def set_render_artifact(self, render_hash: str, job_id: str) -> None:
             cached.append((render_hash, job_id))
 
@@ -17,6 +20,10 @@ def test_render_cache_is_written_only_after_success(monkeypatch) -> None:
         def update_job(self, job_id: str, **payload):
             updates.append(payload)
             return payload
+
+        def append_attempt(self, job_id: str, attempt):
+            updates.append({"attempt": attempt})
+            return attempt
 
     class FakeValidator:
         def validate(self, code: str):
@@ -29,7 +36,11 @@ def test_render_cache_is_written_only_after_success(monkeypatch) -> None:
     monkeypatch.setattr(tasks_render, "JobService", FakeJobService)
     monkeypatch.setattr(tasks_render, "CodeValidator", FakeValidator)
     monkeypatch.setattr(tasks_render, "StorageService", FakeStorageService)
-    monkeypatch.setattr(tasks_render, "get_settings", lambda: type("Settings", (), {"max_render_retries": 0})())
+    monkeypatch.setattr(
+        tasks_render,
+        "get_settings",
+        lambda: type("Settings", (), {"max_render_retries": 0, "manim_version": "0.18.1"})(),
+    )
 
     tasks_render.process_render_job("job_test", "bad", "1080p30", False, "hash_1")
 

@@ -29,6 +29,10 @@ def test_render_feedback_loop_repairs_validation_then_renders(monkeypatch) -> No
             self.updates.append((job_id, updates))
             return updates
 
+        def append_attempt(self, job_id: str, attempt):
+            self.updates.append((job_id, {"attempt": attempt}))
+            return attempt
+
     class FakeLLMService:
         def __init__(self) -> None:
             self.fix_calls = 0
@@ -49,6 +53,19 @@ def test_render_feedback_loop_repairs_validation_then_renders(monkeypatch) -> No
         def put(self, job_id: str, src_file: str) -> str:
             return f"/data/videos/{job_id}.mp4"
 
+        def put_thumbnail(self, job_id: str, src_video: str) -> str | None:
+            return f"/data/videos/{job_id}.jpg"
+
+    class FakeCacheService:
+        def hash_text(self, text: str) -> str:
+            return f"hash:{text}"
+
+        def set_render_artifact(self, render_hash: str, job_id: str) -> None:
+            return None
+
+        def clear_render_inflight(self, render_hash: str) -> None:
+            return None
+
     fake_job_service = FakeJobService()
     fake_llm_service = FakeLLMService()
 
@@ -57,10 +74,21 @@ def test_render_feedback_loop_repairs_validation_then_renders(monkeypatch) -> No
     monkeypatch.setattr(tasks_render, "LLMService", lambda: fake_llm_service)
     monkeypatch.setattr(tasks_render, "RenderOrchestrator", FakeRenderOrchestrator)
     monkeypatch.setattr(tasks_render, "StorageService", FakeStorageService)
-    monkeypatch.setattr(tasks_render, "get_settings", lambda: SimpleNamespace(max_render_retries=2))
+    monkeypatch.setattr(tasks_render, "CacheService", FakeCacheService)
+    monkeypatch.setattr(
+        tasks_render,
+        "get_settings",
+        lambda: SimpleNamespace(
+            max_render_retries=2,
+            manim_version="0.18.1",
+            renderer_image="manim-ai-renderer:test",
+            renderer_policy_version="test",
+        ),
+    )
 
     tasks_render.process_render_job("job_test", initial_code, "1080p30", retry_on_error=True)
 
     assert fake_llm_service.fix_calls >= 1
     assert any(update.get("status") == "retrying" for _, update in fake_job_service.updates)
     assert any(update.get("status") == "done" for _, update in fake_job_service.updates)
+    assert any("artifact_metadata" in update for _, update in fake_job_service.updates)
