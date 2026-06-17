@@ -52,6 +52,12 @@ class JobService:
             "input_code": input_code,
             "final_code": None,
             "repair_attempts": 0,
+            "attempts": [],
+            "error_type": None,
+            "error_summary": None,
+            "code_hash": None,
+            "artifact_metadata": None,
+            "thumbnail_url": None,
             "render_hash": render_hash,
         }
 
@@ -84,3 +90,14 @@ class JobService:
                 self._mem[job_id] = item
 
         return item
+
+    def append_attempt(self, job_id: str, attempt: dict[str, Any]) -> dict[str, Any] | None:
+        item = self.get_job(job_id)
+        if not item:
+            return None
+
+        attempts = item.get("attempts")
+        if not isinstance(attempts, list):
+            attempts = []
+        attempts.append(attempt)
+        return self.update_job(job_id, attempts=attempts)
