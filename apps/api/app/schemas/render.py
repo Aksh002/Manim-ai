@@ -13,6 +13,7 @@ class RenderRequest(BaseModel):
     code: str = Field(min_length=1, max_length=100_000)
     quality: RenderQuality = RenderQuality.HIGH
     retry_on_error: bool = True
+    preview_first: bool = False
 
 
 class RenderResponse(BaseModel):

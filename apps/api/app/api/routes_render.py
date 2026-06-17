@@ -27,7 +27,19 @@ def render(
     if not validation.ok and not payload.retry_on_error:
         raise HTTPException(status_code=400, detail={"errors": validation.errors})
 
-    render_hash = cache_service.hash_text(f"render:v3:{payload.quality.value}:{payload.code}")
+    settings = get_settings()
+    effective_quality = settings.preview_render_quality if payload.preview_first else payload.quality.value
+    render_identity = (
+        f"render:v4:"
+        f"{effective_quality}:"
+        f"{settings.validator_policy_version}:"
+        f"{settings.renderer_policy_version}:"
+        f"{settings.renderer_image}:"
+        f"{settings.renderer_image_digest}:"
+        f"{settings.manim_version}:"
+        f"{payload.code}"
+    )
+    render_hash = cache_service.hash_text(render_identity)
     owner_token = request.headers.get("x-manim-owner-token")
     cached_job_id = cache_service.get_render_artifact(render_hash)
     if cached_job_id:
@@ -47,6 +59,9 @@ def render(
                     progress=100,
                     video_path=cloned,
                     final_code=payload.code,
+                    thumbnail_url=f"/thumbnail/{record['job_id']}"
+                    if storage_service.get_thumbnail(record["job_id"])
+                    else None,
                 )
                 return RenderResponse(
                     job_id=record["job_id"],
@@ -77,7 +92,6 @@ def render(
         input_code=payload.code,
         render_hash=render_hash,
     )
-    settings = get_settings()
     lock_acquired = cache_service.set_render_inflight(
         render_hash,
         record["job_id"],
@@ -99,7 +113,7 @@ def render(
             "app.workers.tasks_render.process_render_job",
             record["job_id"],
             payload.code,
-            payload.quality.value,
+            effective_quality,
             payload.retry_on_error,
             render_hash,
             job_timeout=settings.render_timeout_sec + 20,
@@ -109,7 +123,7 @@ def render(
             process_render_job,
             record["job_id"],
             payload.code,
-            payload.quality.value,
+            effective_quality,
             payload.retry_on_error,
             render_hash,
         )

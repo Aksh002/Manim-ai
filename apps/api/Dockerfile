@@ -11,6 +11,9 @@ RUN apt-get update \
       docker-cli \
       libcairo2 libpango-1.0-0 libpangocairo-1.0-0 \
       build-essential pkg-config libcairo2-dev libpango1.0-dev \
+      dvisvgm \
+      texlive-latex-base texlive-latex-extra texlive-fonts-recommended texlive-science \
+      fonts-dejavu \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . /app

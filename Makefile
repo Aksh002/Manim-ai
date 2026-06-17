@@ -23,7 +23,7 @@ lint-api:
 	docker compose run --rm api ruff check app
 
 test-web:
-	docker compose run --rm web npm run test -- --runInBand
+	docker compose run --rm web npm run test
 
 lint-web:
 	docker compose run --rm web npm run lint

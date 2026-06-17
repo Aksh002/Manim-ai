@@ -40,3 +40,4 @@ AI-assisted Manim animation generation platform with FastAPI + Next.js + Redis/R
 - API contracts are documented in `docs/api-contracts.md`.
 - Golden benchmark prompts are in `docs/golden-prompts.json`.
 - Benchmark runner: `apps/api/app/tests/e2e/run_benchmark.py`.
+- Renderer smoke runner: `apps/api/app/tests/e2e/render_smoke.py`.

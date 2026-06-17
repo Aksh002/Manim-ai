@@ -31,6 +31,8 @@ jobs:
       - name: Renderer image smoke build
         working-directory: .
         run: docker compose build renderer-image
+      - name: Renderer real render smoke
+        run: python app/tests/e2e/render_smoke.py
 
   web:
     runs-on: ubuntu-latest
