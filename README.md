@@ -18,10 +18,13 @@ AI-assisted Manim animation generation platform with FastAPI + Next.js + Redis/R
 
 ## Modes
 
-- Phase 1 style local render (no queue, host manim):
+- Local render fallback (no queue, host manim):
   - `docker compose -f docker-compose.yml -f infra/compose/compose.dev.yml up --build`
-- Phase 2 style secure render (queue + sandbox):
+- Docker sandbox render (queue + sandbox):
   - `docker compose build renderer-image`
+  - `docker compose up --build`
+- Internal renderer service (production-oriented):
+  - set `RENDER_MODE=service`
   - `docker compose up --build`
 
 ## Architecture
@@ -32,10 +35,18 @@ AI-assisted Manim animation generation platform with FastAPI + Next.js + Redis/R
 - `infra`: deployment/runtime configs
 - `docs`: architecture and runbooks
 
+## Production Deployment
+
+- Vercel hosts the Next.js app from `apps/web`.
+- Railway hosts the FastAPI API, RQ worker, Redis, Postgres, and renderer service.
+- Auth uses Auth.js with Google + GitHub OAuth.
+- Users receive free credits and can save encrypted OpenAI-compatible LLM keys.
+- Deployment steps are documented in `docs/production-deployment.md`.
+
 ## Notes
 
-- Phase 1 includes synchronous local render fallback.
-- Phase 2 path (default) uses queue + docker sandbox execution.
+- Local development can use `AUTH_REQUIRED=false` and owner-token fallback.
+- Production should use `AUTH_REQUIRED=true`, `ALLOW_OWNER_TOKEN_FALLBACK=false`, and `RENDER_MODE=service`.
 - The LLM layer uses a single OpenAI-compatible chat-completions endpoint, configured by `LLM_BASE_URL`, `LLM_API_KEY`, and `LLM_MODEL`.
 - API contracts are documented in `docs/api-contracts.md`.
 - Golden benchmark prompts are in `docs/golden-prompts.json`.

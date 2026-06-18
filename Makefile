@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: up down build logs test-api lint-api test-web lint-web
+.PHONY: up down build logs cleanup test-api lint-api test-web lint-web
 
 up:
 	docker compose build renderer-image
@@ -15,6 +15,9 @@ build:
 
 logs:
 	docker compose logs -f --tail=200
+
+cleanup:
+	docker compose run --rm api python -m app.workers.cleanup
 
 test-api:
 	docker compose run --rm api pytest -q
