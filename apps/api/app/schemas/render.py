@@ -9,11 +9,17 @@ class RenderQuality(StrEnum):
     LOW = "480p15"
 
 
+class RenderTarget(StrEnum):
+    DRAFT = "draft"
+    FINAL = "final"
+
+
 class RenderRequest(BaseModel):
     code: str = Field(min_length=1, max_length=100_000)
     quality: RenderQuality = RenderQuality.HIGH
     retry_on_error: bool = True
     preview_first: bool = False
+    target: RenderTarget = RenderTarget.FINAL
 
 
 class RenderResponse(BaseModel):
