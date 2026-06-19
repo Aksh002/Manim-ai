@@ -14,6 +14,12 @@ class Settings(BaseSettings):
     llm_system_prompt: str = ""
     llm_request_timeout_sec: int = 120
     allow_llm_fallback: bool = False
+    database_url: str = ""
+    internal_api_token: str = ""
+    allow_owner_token_fallback: bool = True
+    free_credits_on_signup: int = 5
+    byok_daily_render_limit: int = 20
+    user_secret_encryption_key: str = ""
     prompt_policy_version: str = "2026-06-tex-safe-v1"
     validator_policy_version: str = "2026-06-static-repair-v1"
     renderer_policy_version: str = "2026-06-docker-tmpfs-v1"
@@ -22,9 +28,23 @@ class Settings(BaseSettings):
     use_queue: bool = True
 
     video_storage_root: str = "/data/videos"
+    storage_backend: str = "local"
+    s3_endpoint_url: str = ""
+    s3_bucket: str = ""
+    s3_region: str = "auto"
+    s3_access_key_id: str = ""
+    s3_secret_access_key: str = ""
+    s3_force_path_style: bool = True
+    artifact_signing_secret: str = ""
+    artifact_url_ttl_sec: int = 900
+    job_retention_hours: int = 72
+    artifact_retention_hours: int = 72
+    cleanup_interval_sec: int = 3600
+
     render_timeout_sec: int = 120
     max_render_retries: int = 2
     render_mode: str = "docker"
+    renderer_service_url: str = "http://renderer:8100"
     default_render_quality: str = "1080p30"
     preview_render_quality: str = "480p15"
 
@@ -42,6 +62,9 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:3000"
     rate_limit_per_min: int = 60
     trust_proxy_headers: bool = False
+
+    generation_pipeline_mode: str = "structured"
+    max_generation_repairs: int = 2
 
 
 @lru_cache
