@@ -32,7 +32,16 @@ class JobStatusResponse(BaseModel):
     code_hash: Optional[str] = None
     artifact_metadata: Optional[dict[str, Any]] = None
     thumbnail_url: Optional[str] = None
+    video_url: Optional[str] = None
+    artifact_expires_at: Optional[datetime] = None
+    quality_report: Optional[dict[str, Any]] = None
     render_hash: Optional[str] = None
+    queue_position: Optional[int] = None
+    queued_count: Optional[int] = None
+    worker_id: Optional[str] = None
+    cancellable: bool = False
+    cancel_requested_at: Optional[datetime] = None
+    generation_pipeline: Optional[dict[str, Any]] = None
 
 
 class ApiError(BaseModel):

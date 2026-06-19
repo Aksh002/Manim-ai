@@ -1,4 +1,5 @@
 from enum import StrEnum
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -28,3 +29,8 @@ class GenerateResponse(BaseModel):
     model: str
     source: str = "llm"
     warnings: list[str] = Field(default_factory=list)
+    storyboard: list[str] | None = None
+    scene_plan: dict[str, Any] | None = None
+    generation_attempts: list[dict[str, Any]] = Field(default_factory=list)
+    quality_report: dict[str, Any] | None = None
+    pipeline_mode: str = "legacy"
