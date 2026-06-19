@@ -67,6 +67,17 @@ def get_authenticated_user(
         if not settings.allow_owner_token_fallback:
             raise HTTPException(status_code=401, detail="Internal API token is required")
 
+    if not settings.internal_api_token and x_manim_user_id and settings.allow_owner_token_fallback:
+        return AuthenticatedUser(
+            user_id=x_manim_user_id,
+            email=x_manim_user_email,
+            is_internal=True,
+            allow_owner_token_fallback=True,
+        )
+
+    if not settings.internal_api_token and not settings.allow_owner_token_fallback:
+        raise HTTPException(status_code=401, detail="Internal API token is not configured")
+
     return AuthenticatedUser(
         user_id=None,
         email=None,

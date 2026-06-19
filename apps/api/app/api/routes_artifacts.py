@@ -10,6 +10,7 @@ from app.domain.enums import JobStatus
 from app.schemas.auth import AuthenticatedUser
 from app.services.artifact_signing import verify_artifact_signature
 from app.services.job_service import JobService
+from app.services.range_response import ranged_file_response
 from app.services.storage_service import StorageService
 
 router = APIRouter(tags=["artifacts"])
@@ -51,6 +52,7 @@ def artifact(
     expires: int | None = Query(default=None),
     sig: str | None = Query(default=None),
     owner_token: str | None = Query(default=None),
+    range_header: str | None = Header(default=None, alias="Range"),
     x_manim_owner_token: str | None = Header(default=None),
     storage_service: StorageService = Depends(get_storage_service),
     job_service: JobService = Depends(get_job_service),
@@ -76,7 +78,12 @@ def artifact(
 
     if kind == "video":
         path = storage_service.get(job_id)
-        return FileResponse(path=path, media_type="video/mp4", filename=f"{job_id}.mp4")
+        return ranged_file_response(
+            path=path,
+            media_type="video/mp4",
+            filename=f"{job_id}.mp4",
+            range_header=range_header,
+        )
 
     path = storage_service.get_thumbnail(job_id)
     return FileResponse(path=path, media_type="image/jpeg", filename=f"{job_id}.jpg")
