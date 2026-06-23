@@ -9,6 +9,7 @@ from pathlib import Path
 
 from app.core.config import get_settings
 from app.sandbox.docker_runner import DockerRunner
+from app.services.renderer_service_client import RendererServiceClient
 from app.services.render_types import RenderResult, RenderTimeoutError
 
 
@@ -16,11 +17,45 @@ class RenderOrchestrator:
     def __init__(self) -> None:
         self.settings = get_settings()
         self.docker_runner = DockerRunner()
+        self.renderer_service = RendererServiceClient()
 
     def run(self, job_id: str, code: str, quality: str) -> RenderResult:
+        if self.settings.render_mode == "service":
+            return self.renderer_service.run(job_id=job_id, code=code, quality=quality)
         if self.settings.render_mode == "docker":
             return self.docker_runner.run(job_id=job_id, code=code, quality=quality)
         return self._run_local(job_id=job_id, code=code, quality=quality)
+
+    def health(self) -> dict:
+        if self.settings.render_mode == "service":
+            return self.renderer_service.health()
+        if self.settings.render_mode == "docker":
+            image_check = subprocess.run(
+                ["docker", "image", "inspect", self.settings.renderer_image],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            return {
+                "mode": "docker",
+                "ok": image_check.returncode == 0,
+                "renderer_image": self.settings.renderer_image,
+                "error": image_check.stderr.strip() if image_check.returncode else None,
+            }
+
+        manim = shutil.which("manim")
+        ffmpeg = shutil.which("ffmpeg")
+        return {
+            "mode": "local",
+            "ok": bool(manim and ffmpeg),
+            "manim": manim,
+            "ffmpeg": ffmpeg,
+        }
+
+    def cancel(self, job_id: str) -> bool:
+        if self.settings.render_mode == "service":
+            return self.renderer_service.cancel(job_id)
+        return False
 
     def _run_local(self, job_id: str, code: str, quality: str) -> RenderResult:
         quality_map = {"1080p30": "-qh", "720p30": "-qm", "480p15": "-ql"}
