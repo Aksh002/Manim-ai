@@ -10,6 +10,7 @@ from app.services.code_validator import CodeValidator
 from app.services.error_classifier import classify_error
 from app.services.job_service import JobService
 from app.services.llm_service import LLMService
+from app.services.quality_service import VideoQualityEvaluator
 from app.services.render_orchestrator import RenderOrchestrator
 from app.services.render_types import RenderTimeoutError
 from app.services.storage_service import StorageService
@@ -23,13 +24,18 @@ def process_render_job(
     quality: str,
     retry_on_error: bool = True,
     render_hash: str | None = None,
+    llm_provider_config: dict[str, str] | None = None,
 ) -> None:
     validator = CodeValidator()
     cache_service = CacheService()
     job_service = JobService()
-    llm_service = LLMService()
+    try:
+        llm_service = LLMService(provider_config=llm_provider_config)
+    except TypeError:
+        llm_service = LLMService()
     render_orchestrator = RenderOrchestrator()
     storage = StorageService()
+    quality_evaluator = VideoQualityEvaluator()
     settings = get_settings()
 
     attempts = 1 + (settings.max_render_retries if retry_on_error else 0)
@@ -38,7 +44,26 @@ def process_render_job(
     repair_count = 0
     deterministic_repairer = DeterministicCodeRepairer()
 
+    def cancel_if_requested() -> bool:
+        is_requested = (
+            job_service.is_cancel_requested(job_id)
+            if hasattr(job_service, "is_cancel_requested")
+            else False
+        )
+        if not is_requested:
+            return False
+        if hasattr(render_orchestrator, "cancel"):
+            render_orchestrator.cancel(job_id)
+        if hasattr(job_service, "cancel_job"):
+            job_service.cancel_job(job_id)
+        if render_hash:
+            cache_service.clear_render_inflight(render_hash)
+        return True
+
     for attempt in range(1, attempts + 1):
+        if cancel_if_requested():
+            return
+
         deterministic_code, deterministic_repairs = deterministic_repairer.repair(current_code)
         if deterministic_repairs:
             job_service.append_attempt(
@@ -65,6 +90,8 @@ def process_render_job(
             code_hash=code_hash,
         )
         validation = validator.validate(current_code)
+        if cancel_if_requested():
+            return
         if not validation.ok:
             validation_error = f"Validation failed: {'; '.join(validation.errors)}"
             classified = classify_error(validation_error)
@@ -114,6 +141,8 @@ def process_render_job(
             return
 
         try:
+            if cancel_if_requested():
+                return
             start_time = time.perf_counter()
             job_service.update_job(
                 job_id,
@@ -125,7 +154,47 @@ def process_render_job(
                 error_summary=None,
             )
             result = render_orchestrator.run(job_id=job_id, code=current_code, quality=quality)
+            if cancel_if_requested():
+                Path(result.video_file).unlink(missing_ok=True)
+                return
             render_seconds = round(time.perf_counter() - start_time, 3)
+            quality_report = quality_evaluator.evaluate(result.video_file, quality)
+            if not quality_report["passed"] and attempt < attempts:
+                feedback = (
+                    "Rendered video failed automated quality checks: "
+                    f"{quality_report['repair_suggestions'] or quality_report['checks']}"
+                )
+                fixed_code = llm_service.fix_code(current_code, feedback)
+                output_code = fixed_code if fixed_code.strip() else current_code
+                job_service.update_job(
+                    job_id,
+                    status=JobStatus.RETRYING.value,
+                    stage="retrying_quality",
+                    progress=min(55 + attempt * 15, 90),
+                    error=feedback,
+                    error_type="quality",
+                    error_summary="Automated video quality checks did not pass.",
+                    repair_attempts=attempt,
+                    quality_report=quality_report,
+                )
+                job_service.append_attempt(
+                    job_id,
+                    {
+                        "attempt_number": attempt,
+                        "phase": "quality_repair",
+                        "error_type": "quality",
+                        "error_summary": "Automated video quality checks did not pass.",
+                        "input_code": current_code,
+                        "output_code": output_code,
+                        "render_log_ref": None,
+                        "deterministic_repairs": [],
+                    },
+                )
+                Path(result.video_file).unlink(missing_ok=True)
+                current_code = output_code
+                repair_count += 1
+                continue
+
             video_path = storage.put(job_id, result.video_file)
             thumbnail_path = storage.put_thumbnail(job_id, result.video_file)
             tmp_video = Path(result.video_file)
@@ -135,9 +204,12 @@ def process_render_job(
             artifact_metadata = {
                 "quality": quality,
                 "file_size_bytes": file_size,
+                "duration_seconds": quality_report.get("metadata", {}).get("duration_seconds"),
+                "resolution": quality_report.get("metadata", {}).get("resolution"),
                 "render_seconds": render_seconds,
                 "code_hash": cache_service.hash_text(current_code),
                 "repaired": current_code != code,
+                "storage_backend": getattr(storage, "backend", "local"),
                 "manim_version": settings.manim_version,
                 "renderer_image": settings.renderer_image,
                 "renderer_policy_version": settings.renderer_policy_version,
@@ -152,6 +224,7 @@ def process_render_job(
                 final_code=current_code,
                 repair_attempts=repair_count,
                 artifact_metadata=artifact_metadata,
+                quality_report=quality_report,
                 code_hash=artifact_metadata["code_hash"],
                 thumbnail_url=f"/thumbnail/{job_id}" if thumbnail_path else None,
             )
