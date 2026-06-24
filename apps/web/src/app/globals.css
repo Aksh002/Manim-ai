@@ -29,6 +29,29 @@ h2 {
   font-size: 20px;
 }
 
+.topbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.auth-actions {
+  display: flex;
+  gap: 10px;
+}
+
+@media (max-width: 700px) {
+  .topbar {
+    flex-direction: column;
+  }
+
+  .auth-actions,
+  .button-link {
+    width: 100%;
+  }
+}
+
 .card {
   background: #ffffffde;
   border: 1px solid #dbe3f1;
@@ -78,13 +101,92 @@ button {
   font-weight: 600;
 }
 
+.button-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 96px;
+  border-radius: 10px;
+  background: #0f4fd8;
+  color: white;
+  padding: 10px 12px;
+  text-decoration: none;
+  font-weight: 700;
+}
+
 button.secondary {
+  background: #25314e;
+}
+
+.button-link.secondary {
   background: #25314e;
 }
 
 button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.metric-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #e5ebf6;
+  padding: 8px 0;
+}
+
+.muted {
+  color: #4a5568;
+  margin-top: 8px;
+}
+
+.error-text {
+  color: #8c1f1f;
+  margin-top: 8px;
+  white-space: pre-wrap;
+}
+
+.warning-text {
+  color: #7a5a00;
+  margin-top: 8px;
+  white-space: pre-wrap;
+}
+
+.success-text {
+  color: #25521f;
+  margin-top: 10px;
+}
+
+.inline-danger {
+  width: auto;
+  margin-left: 10px;
+  padding: 4px 8px;
+  background: #8c1f1f;
+  font-size: 12px;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th,
+td {
+  border-bottom: 1px solid #e5ebf6;
+  padding: 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  color: #25314e;
+  font-size: 12px;
+  text-transform: uppercase;
 }
 
 .row {
@@ -134,7 +236,8 @@ pre {
 .status.queued,
 .status.validating,
 .status.rendering,
-.status.retrying {
+.status.retrying,
+.status.cancel_requested {
   background: #fff4d3;
   color: #7a5a00;
 }
@@ -145,7 +248,8 @@ pre {
 }
 
 .status.failed,
-.status.timeout {
+.status.timeout,
+.status.cancelled {
   background: #ffe0e0;
   color: #8c1f1f;
 }
