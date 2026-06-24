@@ -66,6 +66,20 @@ def test_render_feedback_loop_repairs_validation_then_renders(monkeypatch) -> No
         def clear_render_inflight(self, render_hash: str) -> None:
             return None
 
+    class FakeQualityEvaluator:
+        def evaluate(self, video_file: str, quality: str):
+            return {
+                "passed": True,
+                "score": 1,
+                "checks": [],
+                "repair_suggestions": [],
+                "metadata": {
+                    "duration_seconds": 1,
+                    "resolution": "1920x1080",
+                    "file_size_bytes": 10000,
+                },
+            }
+
     fake_job_service = FakeJobService()
     fake_llm_service = FakeLLMService()
 
@@ -75,6 +89,7 @@ def test_render_feedback_loop_repairs_validation_then_renders(monkeypatch) -> No
     monkeypatch.setattr(tasks_render, "RenderOrchestrator", FakeRenderOrchestrator)
     monkeypatch.setattr(tasks_render, "StorageService", FakeStorageService)
     monkeypatch.setattr(tasks_render, "CacheService", FakeCacheService)
+    monkeypatch.setattr(tasks_render, "VideoQualityEvaluator", FakeQualityEvaluator)
     monkeypatch.setattr(
         tasks_render,
         "get_settings",
