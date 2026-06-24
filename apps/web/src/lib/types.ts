@@ -8,6 +8,7 @@ export type GeneratePayload = {
   style: StylePreset;
   level: DifficultyLevel;
   additional_instructions: string;
+  llm_config_id?: string | null;
 };
 
 export type GenerateResponse = {
@@ -15,6 +16,11 @@ export type GenerateResponse = {
   model: string;
   source: "llm" | "fallback" | "cache";
   warnings: string[];
+  storyboard?: string[] | null;
+  scene_plan?: Record<string, unknown> | null;
+  generation_attempts?: Record<string, unknown>[];
+  quality_report?: Record<string, unknown> | null;
+  pipeline_mode?: string;
 };
 
 export type RenderPayload = {
@@ -22,6 +28,8 @@ export type RenderPayload = {
   quality: RenderQuality;
   retry_on_error: boolean;
   preview_first: boolean;
+  target?: "draft" | "final";
+  llm_config_id?: string | null;
 };
 
 export type RenderResponse = {
@@ -33,6 +41,7 @@ export type RenderResponse = {
 export type RegeneratePayload = {
   code: string;
   instruction: string;
+  llm_config_id?: string | null;
 };
 
 export type RegenerateResponse = {
@@ -41,7 +50,16 @@ export type RegenerateResponse = {
 
 export type JobStatus = {
   job_id: string;
-  status: "queued" | "validating" | "rendering" | "retrying" | "done" | "failed" | "timeout";
+  status:
+    | "queued"
+    | "validating"
+    | "rendering"
+    | "retrying"
+    | "cancel_requested"
+    | "cancelled"
+    | "done"
+    | "failed"
+    | "timeout";
   progress: number;
   stage: string;
   error: string | null;
@@ -56,7 +74,16 @@ export type JobStatus = {
   code_hash: string | null;
   artifact_metadata: Record<string, unknown> | null;
   thumbnail_url: string | null;
+  video_url: string | null;
+  artifact_expires_at: string | null;
+  quality_report: Record<string, unknown> | null;
   render_hash: string | null;
+  queue_position: number | null;
+  queued_count: number | null;
+  worker_id: string | null;
+  cancellable: boolean;
+  cancel_requested_at: string | null;
+  generation_pipeline: Record<string, unknown> | null;
 };
 
 export type JobAttempt = {
@@ -68,4 +95,23 @@ export type JobAttempt = {
   output_code: string | null;
   render_log_ref: string | null;
   deterministic_repairs: string[];
+};
+
+export type CreditSummary = {
+  available: number;
+  reserved: number;
+  spent: number;
+  refunded: number;
+  expired: number;
+  freeCreditsOnSignup: number;
+};
+
+export type LlmConfigMetadata = {
+  id: string;
+  name: string;
+  baseUrl: string;
+  model: string;
+  keyPreview: string;
+  createdAt: string;
+  updatedAt: string;
 };
