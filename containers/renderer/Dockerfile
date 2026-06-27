@@ -17,7 +17,7 @@ RUN apt-get update \
 RUN useradd -ms /bin/bash runner
 WORKDIR /workspace
 
-RUN pip install --no-cache-dir manim==0.18.1
+RUN pip install --no-cache-dir manim==0.20.1
 
 COPY containers/renderer/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

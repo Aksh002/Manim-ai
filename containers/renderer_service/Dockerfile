@@ -19,7 +19,7 @@ RUN apt-get update \
 RUN useradd -ms /bin/bash runner
 WORKDIR /srv/renderer
 
-RUN pip install --no-cache-dir fastapi==0.115.14 uvicorn[standard]==0.35.0 manim==0.18.1
+RUN pip install --no-cache-dir fastapi==0.115.14 uvicorn[standard]==0.35.0 manim==0.20.1
 
 COPY containers/renderer_service/app.py /srv/renderer/app.py
 

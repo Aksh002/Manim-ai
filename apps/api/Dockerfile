@@ -17,7 +17,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY . /app
-RUN pip install --no-cache-dir manim==0.18.1
+RUN pip install --no-cache-dir manim==0.20.1
 RUN pip install --no-cache-dir -e .[dev]
 
 EXPOSE 8000
