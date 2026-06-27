@@ -14,13 +14,20 @@ export default function CodeEditor({ code, onChange }: Props) {
   const language = useMemo(() => "python", []);
 
   return (
-    <div className="card">
-      <h2>Generated Code</h2>
+    <div className="code-editor-shell">
       <MonacoEditor
-        height="420px"
+        height="100%"
         language={language}
         value={code}
-        options={{ minimap: { enabled: false }, fontSize: 14, wordWrap: "on" }}
+        theme="vs-dark"
+        options={{
+          minimap: { enabled: false },
+          fontSize: 14,
+          fontLigatures: true,
+          wordWrap: "on",
+          scrollBeyondLastLine: false,
+          padding: { top: 14, bottom: 14 }
+        }}
         onChange={(value) => onChange(value ?? "")}
       />
     </div>
