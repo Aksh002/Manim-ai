@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireCurrentUser } from "@/lib/server/auth-guard";
 import { proxyJson, rewriteBackendUrls } from "@/lib/server/backend-proxy";
 import { syncRenderCreditFromStatus } from "@/lib/server/credits";
+import { syncSessionRenderFromStatus } from "@/lib/server/chat-store";
+import { JobStatus } from "@/lib/types";
 
 export const runtime = "nodejs";
 
@@ -19,6 +21,7 @@ export async function GET(_request: NextRequest, context: { params: Promise<{ jo
         stage: typeof body.stage === "string" ? body.stage : null,
         errorType: typeof body.error_type === "string" ? body.error_type : null
       });
+      await syncSessionRenderFromStatus(user.id, jobId, body as unknown as JobStatus);
     }
     return NextResponse.json(body, { status: result.response.status });
   } catch (error) {
