@@ -32,6 +32,9 @@ dev = [
 where = ["."]
 include = ["app*"]
 
+[tool.setuptools.package-data]
+app = ["knowledge/**/*.json", "knowledge/**/*.md"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py311"

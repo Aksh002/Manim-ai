@@ -1,0 +1,48 @@
+{
+  "policy_version": "2026-06-skill-guided-v1",
+  "target_runtime": "manimce-0.20.1",
+  "sources": [
+    {
+      "name": "nousresearch/hermes-agent manim-video",
+      "repository": "https://github.com/nousresearch/hermes-agent",
+      "license": "MIT",
+      "role": "primary production, design, planning, and ManimCE guidance"
+    },
+    {
+      "name": "adithya-s-k/manim_skill manim-composer",
+      "repository": "https://github.com/adithya-s-k/manim_skill",
+      "license": "MIT",
+      "role": "supplemental narrative and educational arc guidance"
+    }
+  ],
+  "fragments": [
+    {
+      "id": "storyboard-narrative-arcs",
+      "file": "fragments/storyboard_narrative_arcs.md",
+      "stages": ["storyboard", "scene_plan"],
+      "tags": ["narrative", "pedagogy", "aha", "misconception"],
+      "priority": 100
+    },
+    {
+      "id": "visual-design-principles",
+      "file": "fragments/visual_design_principles.md",
+      "stages": ["storyboard", "scene_plan", "code", "repair"],
+      "tags": ["visual", "layout", "color", "pacing", "quality"],
+      "priority": 90
+    },
+    {
+      "id": "manimce-code-contract",
+      "file": "fragments/manimce_code_contract.md",
+      "stages": ["code", "repair"],
+      "tags": ["manimce", "api", "contract", "latex", "render"],
+      "priority": 100
+    },
+    {
+      "id": "quality-repair-rules",
+      "file": "fragments/quality_repair_rules.md",
+      "stages": ["repair", "quality"],
+      "tags": ["quality", "repair", "troubleshooting", "blank", "motion"],
+      "priority": 80
+    }
+  ]
+}
