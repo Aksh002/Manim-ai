@@ -39,7 +39,7 @@ def test_render_cache_is_written_only_after_success(monkeypatch) -> None:
     monkeypatch.setattr(
         tasks_render,
         "get_settings",
-        lambda: type("Settings", (), {"max_render_retries": 0, "manim_version": "0.18.1"})(),
+        lambda: type("Settings", (), {"max_render_retries": 0, "manim_version": "0.20.1"})(),
     )
 
     tasks_render.process_render_job("job_test", "bad", "1080p30", False, "hash_1")

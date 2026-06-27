@@ -95,7 +95,7 @@ def test_render_feedback_loop_repairs_validation_then_renders(monkeypatch) -> No
         "get_settings",
         lambda: SimpleNamespace(
             max_render_retries=2,
-            manim_version="0.18.1",
+            manim_version="0.20.1",
             renderer_image="manim-ai-renderer:test",
             renderer_policy_version="test",
         ),
