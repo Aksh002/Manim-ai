@@ -1,5 +1,6 @@
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x", "debian-openssl-3.0.x", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
@@ -20,6 +21,10 @@ model User {
   llmConfigs    LlmConfig[]
   renderJobs    RenderJob[]
   benchmarks    BenchmarkRun[]
+  chatSessions  ChatSession[]
+  chatMessages  ChatMessage[]
+  codeVersions  CodeVersion[]
+  sessionRenders SessionRender[]
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 }
@@ -114,11 +119,17 @@ model RenderJob {
   status      String
   target      String?
   codeHash    String?
+  chatSessionId String?
+  codeVersionId String?
+  sessionRenderId String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+  @@index([chatSessionId])
+  @@index([codeVersionId])
+  @@index([sessionRenderId])
 }
 
 model BenchmarkRun {
@@ -136,3 +147,90 @@ model BenchmarkRun {
 
   @@index([createdAt])
 }
+model ChatSession {
+  id                  String          @id @default(cuid())
+  userId              String
+  title               String          @default("Untitled scene")
+  archived            Boolean         @default(false)
+  activeCodeVersionId String?
+  activeRenderId      String?
+  metadata            Json?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  lastActivityAt      DateTime        @default(now())
+  user                User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages            ChatMessage[]
+  codeVersions        CodeVersion[]
+  renders             SessionRender[]
+
+  @@index([userId, archived, lastActivityAt])
+}
+
+model ChatMessage {
+  id            String      @id @default(cuid())
+  userId        String
+  chatSessionId String
+  role          String
+  kind          String
+  content       String      @db.Text
+  metadata      Json?
+  createdAt     DateTime    @default(now())
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chatSession   ChatSession @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
+  codeVersions  CodeVersion[]
+
+  @@index([chatSessionId, createdAt])
+  @@index([userId, createdAt])
+}
+
+model CodeVersion {
+  id              String          @id @default(cuid())
+  userId          String
+  chatSessionId   String
+  messageId       String?
+  source          String
+  code            String          @db.Text
+  codeHash        String
+  parentVersionId String?
+  metadata        Json?
+  createdAt       DateTime        @default(now())
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chatSession     ChatSession     @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
+  message         ChatMessage?    @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  parentVersion   CodeVersion?    @relation("CodeVersionLineage", fields: [parentVersionId], references: [id], onDelete: SetNull)
+  childVersions   CodeVersion[]   @relation("CodeVersionLineage")
+  renders         SessionRender[]
+
+  @@index([chatSessionId, createdAt])
+  @@index([userId, createdAt])
+  @@index([codeHash])
+}
+
+model SessionRender {
+  id                String      @id @default(cuid())
+  userId            String
+  chatSessionId     String
+  codeVersionId     String
+  backendJobId      String?     @unique
+  target            String
+  quality           String
+  status            String
+  codeHash          String?
+  videoUrl          String?
+  thumbnailUrl      String?
+  artifactExpiresAt DateTime?
+  pinned            Boolean     @default(false)
+  artifactAvailable Boolean     @default(false)
+  metadata          Json?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+  user              User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chatSession       ChatSession @relation(fields: [chatSessionId], references: [id], onDelete: Cascade)
+  codeVersion       CodeVersion @relation(fields: [codeVersionId], references: [id], onDelete: Cascade)
+
+  @@index([chatSessionId, createdAt])
+  @@index([userId, createdAt])
+  @@index([codeVersionId])
+}
+
+
