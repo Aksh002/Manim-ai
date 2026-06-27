@@ -51,6 +51,12 @@ class CacheService:
     def set_generation(self, request_hash: str, code: str) -> None:
         self._set(f"cache:generate:{request_hash}", code)
 
+    def get_generation_payload(self, request_hash: str) -> str | None:
+        return self._get(f"cache:generate:payload:{request_hash}")
+
+    def set_generation_payload(self, request_hash: str, payload_json: str) -> None:
+        self._set(f"cache:generate:payload:{request_hash}", payload_json)
+
     def get_render_artifact(self, render_hash: str) -> str | None:
         return self._get(f"cache:render:artifact:{render_hash}")
 

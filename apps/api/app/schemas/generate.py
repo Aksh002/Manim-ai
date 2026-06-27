@@ -30,7 +30,11 @@ class GenerateResponse(BaseModel):
     source: str = "llm"
     warnings: list[str] = Field(default_factory=list)
     storyboard: list[str] | None = None
+    storyboard_document: dict[str, Any] | None = None
     scene_plan: dict[str, Any] | None = None
+    planning_report: dict[str, Any] | None = None
+    skill_provenance: dict[str, Any] | None = None
+    manim_version: str | None = None
     generation_attempts: list[dict[str, Any]] = Field(default_factory=list)
     quality_report: dict[str, Any] | None = None
     pipeline_mode: str = "legacy"
