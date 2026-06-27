@@ -17,7 +17,11 @@ export type GenerateResponse = {
   source: "llm" | "fallback" | "cache";
   warnings: string[];
   storyboard?: string[] | null;
+  storyboard_document?: Record<string, unknown> | null;
   scene_plan?: Record<string, unknown> | null;
+  planning_report?: Record<string, unknown> | null;
+  skill_provenance?: Record<string, unknown> | null;
+  manim_version?: string | null;
   generation_attempts?: Record<string, unknown>[];
   quality_report?: Record<string, unknown> | null;
   pipeline_mode?: string;
@@ -114,4 +118,78 @@ export type LlmConfigMetadata = {
   keyPreview: string;
   createdAt: string;
   updatedAt: string;
+};
+export type ChatSessionSummary = {
+  id: string;
+  title: string;
+  archived: boolean;
+  activeCodeVersionId: string | null;
+  activeRenderId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  lastActivityAt: string;
+  latestMessage: string | null;
+  latestRenderStatus: string | null;
+};
+
+export type ChatSession = {
+  id: string;
+  title: string;
+  archived: boolean;
+  activeCodeVersionId: string | null;
+  activeRenderId: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+  lastActivityAt: string;
+};
+
+export type ChatMessage = {
+  id: string;
+  role: "user" | "assistant" | "event" | "system" | string;
+  kind: string;
+  content: string;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+};
+
+export type CodeVersion = {
+  id: string;
+  source: string;
+  code: string;
+  codeHash: string;
+  messageId: string | null;
+  parentVersionId: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+};
+
+export type SessionRender = {
+  id: string;
+  codeVersionId: string;
+  backendJobId: string | null;
+  target: "draft" | "final" | string;
+  quality: string;
+  status: string;
+  codeHash: string | null;
+  videoUrl: string | null;
+  thumbnailUrl: string | null;
+  artifactExpiresAt: string | null;
+  pinned: boolean;
+  artifactAvailable: boolean;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ChatWorkspace = {
+  session: ChatSession;
+  messages: ChatMessage[];
+  codeVersions: CodeVersion[];
+  renders: SessionRender[];
+};
+
+export type ChatRenderResponse = RenderResponse & {
+  renderId: string;
+  workspace: ChatWorkspace;
 };

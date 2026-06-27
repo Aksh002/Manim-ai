@@ -115,6 +115,9 @@ export async function attachRenderJob(input: {
   status: string;
   target?: string | null;
   codeHash?: string | null;
+  chatSessionId?: string | null;
+  codeVersionId?: string | null;
+  sessionRenderId?: string | null;
 }) {
   if (!process.env.DATABASE_URL) {
     return;
@@ -125,7 +128,10 @@ export async function attachRenderJob(input: {
       status: input.status,
       target: input.target,
       codeHash: input.codeHash,
-      creditLedgerId: input.creditLedgerId
+      creditLedgerId: input.creditLedgerId,
+      chatSessionId: input.chatSessionId,
+      codeVersionId: input.codeVersionId,
+      sessionRenderId: input.sessionRenderId
     },
     create: input
   });
@@ -228,3 +234,5 @@ function devCreditSummary(): CreditSummary {
     freeCreditsOnSignup: FREE_CREDITS
   };
 }
+
+
