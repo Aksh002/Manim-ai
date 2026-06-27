@@ -7,7 +7,7 @@ development when `ALLOW_OWNER_TOKEN_FALLBACK=true`.
 
 ## POST /generate
 Input: topic, duration_seconds, style, level, additional_instructions, optional llm_config_id via Next proxy
-Output: code, model, source (`llm`, `fallback`, or `cache`), warnings
+Output: code, model, source (`llm`, `fallback`, or `cache`), warnings, optional storyboard, storyboard_document, scene_plan, planning_report, skill_provenance, manim_version, and generation_attempts
 
 ## POST /render
 Input: code, quality (`1080p30`, `720p30`, or `480p15`), retry_on_error, preview_first, target, optional llm_config_id via Next proxy
@@ -35,3 +35,17 @@ Next proxy only. Returns current free credit balance.
 
 ## GET/POST/DELETE /api/me/llm-configs
 Next proxy only. Manages encrypted OpenAI-compatible BYOK configs. Decrypted API keys are never returned.
+## Chat Workspace Routes
+
+These routes are Next.js proxy routes backed by Prisma/Postgres and require the same Auth.js session or local dev fallback as the rest of the web API.
+
+- `GET /api/chats`: list user-owned chat sessions by recent activity.
+- `POST /api/chats`: create a persistent chat session.
+- `GET/PATCH/DELETE /api/chats/{chatId}`: load, rename/update, or archive a chat.
+- `POST /api/chats/{chatId}/messages`: store a user prompt, call `/generate`, store the assistant event, and create the active code version.
+- `POST /api/chats/{chatId}/code-versions`: save edited, regenerated, or repaired Manim code as a versioned snapshot.
+- `POST /api/chats/{chatId}/renders`: create a session render record, reserve credits, enqueue backend rendering, and link the backend job.
+- `POST /api/chats/{chatId}/renders/{renderId}/pin`: retain or unpin an important render in the workspace.
+- `POST /api/chats/{chatId}/renders/{renderId}/cancel`: cancel the linked backend job when possible.
+
+

@@ -7,13 +7,16 @@
    - `LLM_BASE_URL=<your /v1 or /v1/chat/completions URL>`
    - `LLM_API_KEY=<token>`
    - `LLM_MODEL=qwen3-coder`
-3. Build renderer image:
+3. Sync the web database schema after Prisma model changes:
+   - `cd apps/web`
+   - `npx prisma db push`
+4. Build renderer image:
    - `docker compose build renderer-image`
-4. Start stack:
+5. Start stack:
    - `make up`
-5. Run benchmark:
+6. Run benchmark:
    - `python apps/api/app/tests/e2e/run_benchmark.py`
-6. Run renderer smoke after building `renderer-image`:
+7. Run renderer smoke after building `renderer-image`:
    - `cd apps/api`
    - `python app/tests/e2e/render_smoke.py`
 
