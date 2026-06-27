@@ -1,4 +1,7 @@
 import {
+  ChatRenderResponse,
+  ChatSessionSummary,
+  ChatWorkspace,
   CreditSummary,
   GeneratePayload,
   GenerateResponse,
@@ -7,6 +10,7 @@ import {
   RegeneratePayload,
   RegenerateResponse,
   RenderPayload,
+  RenderQuality,
   RenderResponse
 } from "@/lib/types";
 
@@ -95,3 +99,86 @@ export function resolveApiUrl(url: string | null | undefined): string | null {
   }
   return url;
 }
+export function listChats(): Promise<{ chats: ChatSessionSummary[] }> {
+  return api<{ chats: ChatSessionSummary[] }>("/api/chats");
+}
+
+export function createChat(title?: string): Promise<ChatWorkspace> {
+  return api<ChatWorkspace>("/api/chats", {
+    method: "POST",
+    body: JSON.stringify({ title })
+  });
+}
+
+export function getChat(chatId: string): Promise<ChatWorkspace> {
+  return api<ChatWorkspace>(`/api/chats/${chatId}`);
+}
+
+export function updateChat(
+  chatId: string,
+  payload: { title?: string; archived?: boolean; activeCodeVersionId?: string | null; activeRenderId?: string | null }
+): Promise<ChatWorkspace> {
+  return api<ChatWorkspace>(`/api/chats/${chatId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload)
+  });
+}
+
+export function archiveChat(chatId: string): Promise<ChatWorkspace> {
+  return api<ChatWorkspace>(`/api/chats/${chatId}`, {
+    method: "DELETE"
+  });
+}
+
+export function sendChatPrompt(chatId: string, payload: GeneratePayload): Promise<ChatWorkspace> {
+  return api<ChatWorkspace>(`/api/chats/${chatId}/messages`, {
+    method: "POST",
+    body: JSON.stringify({ payload })
+  });
+}
+
+export function saveCodeVersion(
+  chatId: string,
+  payload: {
+    code: string;
+    source: string;
+    parentVersionId?: string | null;
+    instruction?: string | null;
+    metadata?: Record<string, unknown> | null;
+  }
+): Promise<ChatWorkspace> {
+  return api<ChatWorkspace>(`/api/chats/${chatId}/code-versions`, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export function startChatRender(
+  chatId: string,
+  payload: {
+    codeVersionId: string;
+    quality: RenderQuality;
+    retry_on_error: boolean;
+    target: "draft" | "final";
+    llm_config_id?: string | null;
+  }
+): Promise<ChatRenderResponse> {
+  return api<ChatRenderResponse>(`/api/chats/${chatId}/renders`, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+}
+
+export function pinChatRender(chatId: string, renderId: string, pinned: boolean): Promise<ChatWorkspace> {
+  return api<ChatWorkspace>(`/api/chats/${chatId}/renders/${renderId}/pin`, {
+    method: "POST",
+    body: JSON.stringify({ pinned })
+  });
+}
+
+export function cancelChatRender(chatId: string, renderId: string): Promise<{ status: unknown; workspace: ChatWorkspace }> {
+  return api<{ status: unknown; workspace: ChatWorkspace }>(`/api/chats/${chatId}/renders/${renderId}/cancel`, {
+    method: "POST"
+  });
+}
+

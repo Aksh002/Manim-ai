@@ -28,6 +28,9 @@ if (process.env.AUTH_GITHUB_ID && process.env.AUTH_GITHUB_SECRET) {
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: process.env.DATABASE_URL ? PrismaAdapter(prisma) : undefined,
   providers,
+  pages: {
+    signIn: "/signin"
+  },
   session: {
     strategy: process.env.DATABASE_URL ? "database" : "jwt"
   },
