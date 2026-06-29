@@ -10,6 +10,7 @@ export default async function BenchmarksPage() {
         take: 50
       })
     : [];
+  const summary = summarizeRuns(runs);
 
   return (
     <main>
@@ -22,6 +23,25 @@ export default async function BenchmarksPage() {
           Workspace
         </Link>
       </header>
+
+      <section className="benchmark-summary" aria-label="Benchmark summary">
+        <div>
+          <span>Runs</span>
+          <strong>{summary.total}</strong>
+        </div>
+        <div>
+          <span>Success</span>
+          <strong>{summary.successRate}</strong>
+        </div>
+        <div>
+          <span>Avg quality</span>
+          <strong>{summary.averageQuality}</strong>
+        </div>
+        <div>
+          <span>Avg seconds</span>
+          <strong>{summary.averageSeconds}</strong>
+        </div>
+      </section>
 
       <section className="card" style={{ marginTop: 16 }}>
         <h2>Recent Runs</h2>
@@ -58,4 +78,37 @@ export default async function BenchmarksPage() {
       </section>
     </main>
   );
+}
+
+function summarizeRuns(
+  runs: {
+    success: boolean;
+    qualityScore: number | null;
+    renderSeconds: number | null;
+  }[]
+) {
+  if (runs.length === 0) {
+    return {
+      total: 0,
+      successRate: "-",
+      averageQuality: "-",
+      averageSeconds: "-"
+    };
+  }
+  const qualityScores = runs.flatMap((run) => (run.qualityScore === null ? [] : [run.qualityScore]));
+  const renderSeconds = runs.flatMap((run) => (run.renderSeconds === null ? [] : [run.renderSeconds]));
+  const successRate = (runs.filter((run) => run.success).length / runs.length) * 100;
+  return {
+    total: runs.length,
+    successRate: `${successRate.toFixed(0)}%`,
+    averageQuality: average(qualityScores),
+    averageSeconds: average(renderSeconds)
+  };
+}
+
+function average(values: number[]) {
+  if (values.length === 0) {
+    return "-";
+  }
+  return (values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(1);
 }
