@@ -47,6 +47,8 @@ class Settings(BaseSettings):
     artifact_url_ttl_sec: int = 900
     job_retention_hours: int = 72
     artifact_retention_hours: int = 72
+    draft_render_retention_hours: int = 24
+    final_render_retention_hours: int = 168
     cleanup_interval_sec: int = 3600
 
     render_timeout_sec: int = 120

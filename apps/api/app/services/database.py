@@ -4,6 +4,8 @@ from contextlib import contextmanager
 from typing import Iterator
 
 from sqlalchemy import create_engine
+from datetime import datetime
+
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
 from app.core.config import get_settings
@@ -33,6 +35,20 @@ class LlmConfigRow(Base):
     baseUrl: Mapped[str]
     model: Mapped[str]
     encryptedApiKey: Mapped[str]
+
+
+class SessionRenderRow(Base):
+    __tablename__ = "SessionRender"
+
+    id: Mapped[str] = mapped_column(primary_key=True)
+    backendJobId: Mapped[str | None]
+    target: Mapped[str]
+    pinned: Mapped[bool]
+    artifactAvailable: Mapped[bool]
+    videoUrl: Mapped[str | None]
+    thumbnailUrl: Mapped[str | None]
+    artifactExpiresAt: Mapped[datetime | None]
+    createdAt: Mapped[datetime]
 
 
 _engine = None
