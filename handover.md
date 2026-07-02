@@ -1,12 +1,12 @@
 # Manim AI Handover
 
-This document is intended to give a new agent or developer enough context to understand the current project state without replaying the full conversation. It reflects the repository after the chat-workspace, Auth/BYOK/credits, renderer-service, storage, quality, and skill-guided generation work.
+This document is intended to give a new agent or developer enough context to understand the current project state without replaying the full conversation. It reflects the repository after the landing-page split, chat-workspace, Auth/BYOK/credits, renderer-service, storage, quality, and skill-guided generation work.
 
 ## 1. Product Summary
 
 Manim AI is an AI-assisted educational animation studio. A user describes a lesson, the system plans a storyboard and scene structure, generates Manim CE code, lets the user edit/regenerate the code, renders it asynchronously, repairs failures, and returns MP4/thumbnail artifacts.
 
-The current web product is not a single prompt form anymore. It is a persistent chat-style workspace:
+The current web product is split into a public landing page at `/` and a persistent chat-style workspace at `/chat`. The workspace includes:
 
 - Left rail: chat sessions and account/queue hints.
 - Center: timeline of user prompts, generation events, render events, repair/error events.
@@ -42,7 +42,9 @@ Important design choice: browser traffic should go through the Next.js proxy, no
 
 ## 3. Web App Current State
 
-The main workspace is implemented in [apps/web/src/app/page.tsx](apps/web/src/app/page.tsx). It is a client component that manages:
+The public landing page is implemented in [apps/web/src/app/page.tsx](apps/web/src/app/page.tsx). It is a client component with a product-grade marketing flow, animated sections, and a CTA into `/chat`.
+
+The main workspace is implemented in [apps/web/src/app/chat/page.tsx](apps/web/src/app/chat/page.tsx). It is a client component that manages:
 
 - chat loading and switching
 - prompt submission
@@ -53,7 +55,16 @@ The main workspace is implemented in [apps/web/src/app/page.tsx](apps/web/src/ap
 - credits display
 - worker queue health display
 
-Styling is in [apps/web/src/app/globals.css](apps/web/src/app/globals.css). The current visual direction is a dense studio/workbench UI, not a landing page.
+Finalized chat visual direction:
+
+- Keep the after-render opening screen: `RenderIntroOverlay` plays `/media/saigon-chat-bg.mp4` once with the "hello saigon" treatment, then unmounts.
+- After that intro, the chat interface renders over the approved ambient background video:
+  `https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260508_064209_0cb7d815-ff61-4caa-a6d5-bbff145ab272.mp4`
+- The loaded chat state intentionally abandoned the earlier Yinger-style background composition. Do not re-add the recursive "hello saigon" to "united, unbound" transition or extra "united unbound" chat copy.
+- `SeamlessAmbientVideo` uses two video elements and crossfades near loop boundaries so MP4/HLS backgrounds can loop more smoothly. The chat background and render-wait preview both use this helper.
+- The ambient layers use full-viewport `object-fit: cover`; this avoids black side corners, with acceptable crop depending on the source aspect ratio.
+
+Styling is in [apps/web/src/app/globals.css](apps/web/src/app/globals.css). The file currently contains both landing-page styles and workspace styles, so route-scoped class names matter when editing.
 
 Key components:
 
@@ -116,7 +127,7 @@ Prisma client setup: [apps/web/src/lib/server/prisma.ts](apps/web/src/lib/server
 Important Prisma runtime details:
 
 - `binaryTargets` include `linux-musl-openssl-3.0.x`, `debian-openssl-3.0.x`, and `rhel-openssl-3.0.x` because Docker and deployments may not match Windows.
-- Supabase pooler URLs are normalized to include `pgbouncer=true` and `connection_limit=1` to avoid prepared statement collisions such as `prepared statement "s0" already exists`.
+- Supabase pooler URLs are normalized to include `pgbouncer=true`, `connection_limit=5`, and `pool_timeout=20` unless already configured. This avoids prepared statement collisions without starving concurrent Auth.js/API requests.
 - [apps/web/.dockerignore](apps/web/.dockerignore) prevents Windows host `node_modules` from being copied into Linux Docker images.
 - [apps/web/Dockerfile](apps/web/Dockerfile) runs `npx prisma generate` inside the container.
 
@@ -124,7 +135,7 @@ Local DB sync:
 
 ```powershell
 cd apps/web
-npx prisma db push
+npx prisma migrate deploy
 ```
 
 If Supabase direct host `db.<project>.supabase.co:5432` is unreachable, use the Supabase session pooler on port `5432`, not transaction pooler `6543`.
@@ -294,7 +305,7 @@ Artifact delivery:
 - Next proxy rewrites `/artifacts/...` backend URLs to `/api/artifacts/...` in [backend-proxy.ts](apps/web/src/lib/server/backend-proxy.ts).
 - Range requests are forwarded to support video seeking.
 
-Current caveat: draft/final/pinned render retention metadata exists in the web workspace, but cleanup is not yet fully differentiated by render target and pin state.
+Cleanup is target-aware for chat renders: drafts use `DRAFT_RENDER_RETENTION_HOURS`, finals use `FINAL_RENDER_RETENTION_HOURS`, and pinned renders are retained until unpinned. The web workspace shows expired artifacts and disables preview/download when the signed artifact is no longer available.
 
 ## 12. Docker And Deployment
 
@@ -352,7 +363,7 @@ Known env pitfalls:
 - Do not commit `.env` or `apps/web/.env`.
 - Docker Compose interpolates `$` inside `.env`; raw passwords containing `$H` can trigger `The "H" variable is not set`. Use URL encoding in URLs or escape raw `$` as `$$`.
 - Supabase transaction pooler port `6543` is problematic for Prisma schema work and can hang. Prefer direct DB or session pooler port `5432`.
-- For Supabase pooler runtime, ensure Prisma URL handling keeps `pgbouncer=true` and `connection_limit=1`.
+- For Supabase pooler runtime, ensure Prisma URL handling keeps `pgbouncer=true`, with enough `connection_limit`/`pool_timeout` headroom for concurrent web API requests.
 
 ## 14. Local Runbook
 
@@ -362,7 +373,7 @@ Fresh setup:
 copy .env.example .env
 # edit .env and apps/web/.env
 cd apps/web
-npx prisma db push
+npx prisma migrate deploy
 cd ..\..
 docker compose build renderer-image
 docker compose up --build
@@ -370,7 +381,8 @@ docker compose up --build
 
 Open:
 
-- Web: http://localhost:3000
+- Landing page: http://localhost:3000
+- Chat workspace: http://localhost:3000/chat
 - Sign-in/dev auth: http://localhost:3000/signin
 - API docs: http://localhost:8000/docs
 
@@ -414,13 +426,15 @@ cd apps/web
 npm run build
 ```
 
+On Windows, stop any running Next dev server before `npm run build` if Prisma or `.next` files are locked. Common symptoms include `EPERM` while renaming `query_engine-windows.dll.node` or unlinking `.next/app-path-routes-manifest.json`.
+
 Docker verification used recently:
 
 ```powershell
 docker compose build web
 ```
 
-Current gap: there are not yet dedicated tests for the new chat workspace API routes, chat persistence behavior, pinning, or UI interactions.
+Current gap: there are not yet dedicated tests for the new chat workspace API routes, chat persistence behavior, pinning, or UI interactions. The web app still has `npm run test` mapped to lint only, so adding real route/browser tests requires choosing and wiring a test stack rather than just adding a few test files.
 
 ## 16. Recent Problems Fixed
 
@@ -446,7 +460,7 @@ These are important because they are likely to recur if env/Docker changes regre
 
 6. Supabase pooler prepared statement collision.
    - Error: `prepared statement "s0" already exists`.
-   - Fix: [prisma.ts](apps/web/src/lib/server/prisma.ts) appends `pgbouncer=true` and `connection_limit=1` for pooler URLs.
+   - Fix: [prisma.ts](apps/web/src/lib/server/prisma.ts) appends `pgbouncer=true`, `connection_limit=5`, and `pool_timeout=20` for pooler URLs unless explicitly configured.
 
 7. Blank Auth.js sign-in page.
    - Cause: no OAuth providers configured.
@@ -458,9 +472,8 @@ High priority:
 
 - Add automated tests for `/api/chats/*` route ownership and persistence.
 - Add UI smoke tests for chat switching, prompt generation, code save, draft render, status polling, repaired-code capture.
-- Make cleanup retention target-aware: drafts expire quickly, finals longer, pinned renders retained.
-- Add database migrations instead of relying only on `prisma db push` for production.
-- Upgrade Next.js from `15.0.0` because npm warns about a security advisory.
+- Expand migration coverage as schema evolves; a baseline Prisma migration now exists under `apps/web/prisma/migrations`.
+- Keep Next.js updated from the current 16.x line and run the web build on a compatible Node.js runtime.
 
 Production hardening:
 
@@ -472,26 +485,34 @@ Production hardening:
 
 Product quality:
 
-- Add render history filtering and explicit expired artifact UI.
-- Add side-by-side original/repaired code diff.
-- Improve mobile layout for the three-pane workspace.
+- Replace or self-host the landing/chat remote video assets before production if CDN reliability, cost, privacy, or offline development becomes a concern.
+- Continue refining render history filtering, expired artifact UI, repaired-code diff, and mobile ergonomics based on browser smoke results.
 - Add quality score trends and benchmark dashboard improvements.
+
+Deferred follow-ups and why they were left for a later pass:
+
+- Add `/api/chats/*` route tests after choosing a web route/unit test setup. These tests should cover ownership, persistence, archive, code versions, render enqueue, pin/unpin, cancel, and status sync.
+- Add browser smoke tests after wiring Playwright or an equivalent runner with stable fixtures. The flows need mocked Auth.js/Prisma state and mocked FastAPI generate/render/status responses.
+- Add Sentry/OpenTelemetry only after deciding provider, DSN/exporter config, sampling policy, and safe metadata rules. Prompt/code/user data should not be emitted accidentally.
+- Complete the renderer-service threat-model review against the real production or production-like deployment. The review needs actual network boundaries, Docker socket absence, storage bucket policy, env secrets, and proxy/auth settings.
+- Validate production hardening in deployed infrastructure. Local repo edits cannot prove OAuth callbacks, Vercel/Railway envs, S3/R2 permissions, Redis/Postgres config, or renderer-service reachability.
 
 ## 18. Suggested Read Order For A New Agent
 
 1. [README.md](README.md)
 2. This file: [handover.md](handover.md)
 3. [apps/web/src/app/page.tsx](apps/web/src/app/page.tsx)
-4. [apps/web/src/lib/server/chat-store.ts](apps/web/src/lib/server/chat-store.ts)
-5. [apps/web/prisma/schema.prisma](apps/web/prisma/schema.prisma)
-6. [apps/web/src/lib/server/backend-proxy.ts](apps/web/src/lib/server/backend-proxy.ts)
-7. [apps/api/app/api/routes_generate.py](apps/api/app/api/routes_generate.py)
-8. [apps/api/app/services/llm_service.py](apps/api/app/services/llm_service.py)
-9. [apps/api/app/workers/tasks_render.py](apps/api/app/workers/tasks_render.py)
-10. [apps/api/app/services/render_orchestrator.py](apps/api/app/services/render_orchestrator.py)
-11. [apps/api/app/services/storage_service.py](apps/api/app/services/storage_service.py)
-12. [docs/api-contracts.md](docs/api-contracts.md)
-13. [docs/production-deployment.md](docs/production-deployment.md)
+4. [apps/web/src/app/chat/page.tsx](apps/web/src/app/chat/page.tsx)
+5. [apps/web/src/lib/server/chat-store.ts](apps/web/src/lib/server/chat-store.ts)
+6. [apps/web/prisma/schema.prisma](apps/web/prisma/schema.prisma)
+7. [apps/web/src/lib/server/backend-proxy.ts](apps/web/src/lib/server/backend-proxy.ts)
+8. [apps/api/app/api/routes_generate.py](apps/api/app/api/routes_generate.py)
+9. [apps/api/app/services/llm_service.py](apps/api/app/services/llm_service.py)
+10. [apps/api/app/workers/tasks_render.py](apps/api/app/workers/tasks_render.py)
+11. [apps/api/app/services/render_orchestrator.py](apps/api/app/services/render_orchestrator.py)
+12. [apps/api/app/services/storage_service.py](apps/api/app/services/storage_service.py)
+13. [docs/api-contracts.md](docs/api-contracts.md)
+14. [docs/production-deployment.md](docs/production-deployment.md)
 
 ## 19. Mental Model
 
